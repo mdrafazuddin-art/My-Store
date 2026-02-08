@@ -3,74 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Website Builder Pro</title>
+    <title>AI Web Architect (Chat Edition)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* CRITICAL: Mobile View (100dvh) */
         body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background-color: #0f172a; margin: 0; }
+        
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        #preview-frame { background: white; border-radius: 8px; transition: all 0.3s ease; }
+
+        #preview-frame { background: white; border-radius: 12px; transition: all 0.3s ease; width: 100%; height: 100%; }
         .modal-backdrop { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
-        main { flex: 1; min-height: 0; position: relative; }
-        aside { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        main { flex: 1; min-height: 0; display: flex; flex-direction: row; }
+        
+        /* Chat Bubbles */
+        .chat-user { background: #1e293b; border-radius: 18px 18px 2px 18px; align-self: flex-end; }
+        .chat-ai { background: #3b82f6; border-radius: 18px 18px 18px 2px; align-self: flex-start; }
+        
+        aside { transition: width 0.3s ease; }
         .sidebar-collapsed { width: 0 !important; overflow: hidden; border: none !important; }
     </style>
 </head>
 <body class="font-sans text-slate-200">
 
+    <!-- APP WRAPPER -->
     <div class="flex h-full w-full overflow-hidden">
-        <aside id="sidebar" class="w-64 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col z-20">
+        
+        <!-- SIDEBAR (PROJECTS) -->
+        <aside id="sidebar" class="w-64 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col z-30">
             <div class="p-4 flex-shrink-0">
-                <button onclick="createNewProject()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg">
-                    <i data-lucide="plus" class="w-4 h-4"></i> New Project
+                <button onclick="createNewProject()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg">
+                    <i data-lucide="plus" class="w-4 h-4"></i> New Chat
                 </button>
             </div>
-            <div id="project-list" class="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-1"></div>
-            <div class="p-4 border-t border-slate-800 flex-shrink-0 space-y-2">
-                <button onclick="toggleSettings(true)" class="w-full text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-3 p-2.5 rounded-lg transition-colors">
-                    <i data-lucide="settings" class="w-5 h-5"></i> Settings
-                </button>
-                <button onclick="localStorage.clear(); location.reload();" class="w-full text-slate-500 hover:text-red-400 text-xs text-left px-2.5 italic">
-                    Clear Data/Reset App
-                </button>
+            <div id="project-list" class="flex-1 overflow-y-auto custom-scrollbar px-3 space-y-1"></div>
+            <div class="p-4 border-t border-slate-800 space-y-2">
+                <button onclick="toggleSettings(true)" class="w-full text-slate-400 hover:text-white flex items-center gap-3 p-2 rounded-lg"><i data-lucide="settings" class="w-5 h-5"></i> Settings</button>
+                <button onclick="localStorage.clear(); location.reload();" class="w-full text-slate-600 hover:text-red-400 text-xs text-left px-2">Reset App Data</button>
             </div>
         </aside>
 
+        <!-- MAIN WORKSPACE -->
         <div class="flex-1 flex flex-col bg-slate-950 min-w-0">
-            <header class="h-14 border-b border-slate-800 flex items-center justify-between px-4 flex-shrink-0 bg-slate-900/50">
+            
+            <!-- HEADER -->
+            <header class="h-14 border-b border-slate-800 flex items-center justify-between px-4 bg-slate-900/50">
                 <div class="flex items-center gap-3">
-                    <button onclick="toggleSidebar()" class="p-1.5 hover:bg-slate-800 rounded-md text-slate-400"><i data-lucide="panel-left" class="w-5 h-5"></i></button>
-                    <div class="flex items-center gap-1.5 ml-2">
-                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                    </div>
-                    <span id="project-title" class="ml-4 font-semibold text-slate-300 truncate max-w-[200px]">Untitled Project</span>
+                    <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400"><i data-lucide="panel-left" class="w-5 h-5"></i></button>
+                    <span id="project-title" class="font-bold text-slate-300 truncate max-w-[150px]">New Website</span>
                 </div>
+
                 <div class="flex items-center gap-2">
-                    <div class="bg-slate-800/50 rounded-lg p-1 flex border border-slate-700">
-                        <button id="view-preview-btn" onclick="setView('preview')" class="px-4 py-1.5 text-xs font-bold rounded-md bg-blue-600 text-white">PREVIEW</button>
-                        <button id="view-code-btn" onclick="setView('code')" class="px-4 py-1.5 text-xs font-bold rounded-md text-slate-400">CODE</button>
+                    <div class="bg-slate-800 rounded-lg p-1 flex border border-slate-700">
+                        <button id="view-preview-btn" onclick="setView('preview')" class="px-4 py-1 text-xs font-bold rounded-md bg-blue-600 text-white">PREVIEW</button>
+                        <button id="view-code-btn" onclick="setView('code')" class="px-4 py-1 text-xs font-bold rounded-md text-slate-400">CODE</button>
                     </div>
-                    <button onclick="downloadCode()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-300 border border-slate-700"><i data-lucide="download" class="w-5 h-5"></i></button>
+                    <button onclick="downloadCode()" class="p-2 hover:bg-slate-800 rounded-lg text-slate-300 border border-slate-700"><i data-lucide="download" class="w-5 h-5"></i></button>
                 </div>
             </header>
 
-            <main class="p-4">
-                <div id="preview-container" class="h-full w-full">
-                    <iframe id="preview-frame" class="w-full h-full border-0 shadow-2xl"></iframe>
+            <!-- CHAT & PREVIEW AREA -->
+            <main>
+                <!-- CHAT PANEL (LEFT) -->
+                <div id="chat-panel" class="w-80 border-r border-slate-800 flex flex-col bg-slate-950 hidden md:flex">
+                    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar flex flex-col">
+                        <!-- Messages injected here -->
+                    </div>
                 </div>
-                <div id="code-container" class="hidden h-full w-full">
-                    <textarea id="code-editor" class="w-full h-full bg-slate-900 text-blue-300 p-6 font-mono text-sm border border-slate-800 rounded-xl outline-none resize-none shadow-inner" spellcheck="false"></textarea>
+
+                <!-- DISPLAY PANEL (RIGHT) -->
+                <div class="flex-1 relative p-4 bg-slate-950">
+                    <div id="preview-container" class="h-full w-full">
+                        <iframe id="preview-frame" class="shadow-2xl"></iframe>
+                    </div>
+                    <div id="code-container" class="hidden h-full w-full">
+                        <textarea id="code-editor" class="w-full h-full bg-slate-900 text-blue-300 p-6 font-mono text-sm border border-slate-800 rounded-xl outline-none resize-none shadow-inner" spellcheck="false"></textarea>
+                    </div>
                 </div>
             </main>
 
-            <footer class="p-4 border-t border-slate-800 bg-slate-900/50 flex-shrink-0">
-                <div class="max-w-5xl mx-auto flex gap-3">
-                    <textarea id="prompt-input" rows="1" placeholder="Type instructions..." class="flex-1 bg-slate-800 border border-slate-700 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none" oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 200) + 'px'"></textarea>
-                    <button id="send-btn" onclick="generateWebsite()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-2xl transition-all disabled:opacity-50 active:scale-95">
-                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <!-- INPUT BAR -->
+            <footer class="p-4 border-t border-slate-800 bg-slate-900/80">
+                <div class="max-w-4xl mx-auto flex gap-3">
+                    <textarea id="prompt-input" rows="1" placeholder="Ask AI to build or change something..." 
+                        class="flex-1 bg-slate-800 border border-slate-700 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none overflow-hidden" 
+                        oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 200) + 'px'"></textarea>
+                    <button id="send-btn" onclick="askAI()" class="bg-blue-600 hover:bg-blue-500 text-white w-14 rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center shadow-lg active:scale-90">
+                        <i data-lucide="send" class="w-6 h-6"></i>
                     </button>
                 </div>
             </footer>
@@ -79,33 +100,40 @@
 
     <!-- SETTINGS MODAL -->
     <div id="settings-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl shadow-2xl p-8">
-            <h2 class="text-2xl font-bold mb-6 flex items-center gap-3"><i data-lucide="settings" class="w-6 h-6 text-blue-500"></i> Settings</h2>
-            <div class="space-y-5">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-2xl font-bold mb-6">API Configuration</h2>
+            <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">API Endpoint</label>
-                    <input type="text" id="setting-url" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-blue-500 outline-none">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Endpoint URL</label>
+                    <input type="text" id="setting-url" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">OpenRouter API Key (Paste here)</label>
-                    <input type="password" id="setting-key" placeholder="sk-or-..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-blue-500 outline-none">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">OpenRouter API Key</label>
+                    <input type="password" id="setting-key" placeholder="sk-or-..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">AI Model</label>
-                    <input type="text" id="setting-model" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-blue-500 outline-none">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Model</label>
+                    <input type="text" id="setting-model" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500">
                 </div>
             </div>
-            <div class="mt-10 flex gap-3">
-                <button onclick="saveSettings()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all">Save</button>
-                <button onclick="toggleSettings(false)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl">Cancel</button>
+            <div class="mt-8 flex gap-3">
+                <button onclick="saveSettings()" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl">Save</button>
+                <button onclick="toggleSettings(false)" class="flex-1 bg-slate-800 text-white font-bold py-3 rounded-xl">Close</button>
             </div>
         </div>
     </div>
 
     <script>
-        const SYSTEM_PROMPT = "You are a web developer. Output ONLY raw HTML/Tailwind code. No markdown, no code blocks, no grounding citations.";
+        const SYSTEM_PROMPT = "You are an expert web developer. You build modern, responsive, single-file websites using HTML and Tailwind CSS. IMPORTANT: You must ONLY output the raw HTML code. Do not explain, do not use markdown code blocks, and do not include grounding citations. If the user asks for changes, rewrite the code to include those changes.";
+        
         const DEFAULTS = { url: "https://openrouter.ai/api/v1/chat/completions", key: "", model: "deepseek/deepseek-r1:free" };
-        let state = { projects: JSON.parse(localStorage.getItem('builder_v3_projs')) || [], activeIndex: -1, settings: JSON.parse(localStorage.getItem('builder_v3_sets')) || DEFAULTS };
+        
+        let state = {
+            projects: JSON.parse(localStorage.getItem('chat_builder_projs')) || [],
+            activeIndex: -1,
+            settings: JSON.parse(localStorage.getItem('chat_builder_sets')) || DEFAULTS,
+            view: 'preview'
+        };
 
         window.onload = () => {
             lucide.createIcons();
@@ -115,26 +143,38 @@
             document.getElementById('setting-model').value = state.settings.model;
         };
 
-        async function generateWebsite() {
-            const promptInput = document.getElementById('prompt-input');
-            const prompt = promptInput.value.trim();
+        async function askAI() {
+            const input = document.getElementById('prompt-input');
+            const prompt = input.value.trim();
             if (!prompt) return;
-            if (!state.settings.key) { alert("ERROR: You must enter your API Key in Settings!"); toggleSettings(true); return; }
+            if (!state.settings.key) { alert("Add API Key in Settings!"); toggleSettings(true); return; }
+
+            const project = state.projects[state.activeIndex];
+            
+            // Add user message to history
+            project.history.push({ role: "user", content: prompt });
+            renderChat();
+            input.value = "";
+            input.style.height = 'auto';
 
             try {
                 setLoading(true);
+                
+                // Construct messages for "ChatGPT style" conversation
+                const messages = [
+                    { role: "system", content: SYSTEM_PROMPT + "\n\nCURRENT CODE:\n" + project.code },
+                    ...project.history
+                ];
+
                 const response = await fetch(state.settings.url, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${state.settings.key.trim()}`,
+                        'Authorization': `Bearer ${state.settings.key}`,
                         'Content-Type': 'application/json',
-                        'HTTP-Referer': window.location.href, // Added for OpenRouter
-                        'X-Title': 'AI Website Builder'
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'AI Web Chat'
                     },
-                    body: JSON.stringify({
-                        model: state.settings.model,
-                        messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: prompt }]
-                    })
+                    body: JSON.stringify({ model: state.settings.model, messages: messages })
                 });
 
                 const text = await response.text();
@@ -143,19 +183,33 @@
                 const data = JSON.parse(text);
                 let rawCode = data.choices[0].message.content;
 
-                // Strip Citations and Markdown
+                // Strip "Latter" (Markdown and citations)
                 rawCode = rawCode.replace(/```html/gi, '').replace(/```/g, '').trim();
                 rawCode = rawCode.replace(/\[\[\d+\]\(https?:\/\/[^\)]+\)\]/g, ''); 
 
-                state.projects[state.activeIndex].code = rawCode;
-                state.projects[state.activeIndex].title = prompt.substring(0, 20) + "...";
-                saveState(); loadProject(state.activeIndex);
-                promptInput.value = ""; promptInput.style.height = 'auto';
+                // Update Project
+                project.code = rawCode;
+                project.history.push({ role: "assistant", content: "I've updated your website." });
+                if (project.title === "New Website") project.title = prompt.substring(0, 20) + "...";
+                
+                saveState();
+                loadProject(state.activeIndex);
             } catch (e) {
-                alert("Critical Error: " + e.message);
+                alert("Error: " + e.message);
             } finally {
                 setLoading(false);
             }
+        }
+
+        function createNewProject() {
+            const p = {
+                title: "New Website",
+                code: `<html><script src="https://cdn.tailwindcss.com"><\/script><body class="bg-slate-900 text-white flex items-center justify-center h-screen font-sans"><div class="text-center"><h1 class="text-4xl font-black mb-4">AI Chat Builder</h1><p class="text-slate-400">Tell me what to build below...</p></div></body></html>`,
+                history: []
+            };
+            state.projects.unshift(p);
+            saveState();
+            loadProject(0);
         }
 
         function loadProject(i) {
@@ -164,38 +218,50 @@
             document.getElementById('project-title').textContent = p.title;
             document.getElementById('code-editor').value = p.code;
             document.getElementById('preview-frame').srcdoc = p.code;
-            renderList();
+            renderProjectList();
+            renderChat();
         }
 
-        function createNewProject() {
-            state.projects.unshift({ title: "Untitled Project", code: `<html><script src="https://cdn.tailwindcss.com"><\/script><body class="bg-slate-900 text-white flex items-center justify-center h-screen font-sans"><h1>Type below to start...</h1></body></html>` });
-            saveState(); loadProject(0);
+        function renderChat() {
+            const chatBox = document.getElementById('chat-messages');
+            chatBox.innerHTML = state.projects[state.activeIndex].history.map(m => `
+                <div class="max-w-[85%] p-3 text-sm ${m.role === 'user' ? 'chat-user' : 'chat-ai'}">
+                    ${m.content}
+                </div>
+            `).join('');
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function renderList() {
+        function renderProjectList() {
             document.getElementById('project-list').innerHTML = state.projects.map((p, i) => `
-                <div onclick="loadProject(${i})" class="p-3 rounded-xl cursor-pointer ${i === state.activeIndex ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'text-slate-400 hover:bg-slate-800'}">
-                    <span class="text-sm truncate block">${p.title}</span>
-                </div>`).join('');
+                <div onclick="loadProject(${i})" class="p-3 rounded-xl cursor-pointer mb-1 truncate text-sm ${i === state.activeIndex ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:bg-slate-800'}">
+                    ${p.title}
+                </div>
+            `).join('');
         }
 
-        function saveSettings() {
-            state.settings = { url: document.getElementById('setting-url').value, key: document.getElementById('setting-key').value, model: document.getElementById('setting-model').value };
-            localStorage.setItem('builder_v3_sets', JSON.stringify(state.settings));
-            toggleSettings(false);
-        }
-
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('sidebar-collapsed'); }
-        function setView(v) { 
+        function setView(v) {
             const isP = v === 'preview';
             document.getElementById('preview-container').classList.toggle('hidden', !isP);
             document.getElementById('code-container').classList.toggle('hidden', isP);
-            document.getElementById('view-preview-btn').className = isP ? 'px-4 py-1.5 text-xs font-bold rounded-md bg-blue-600 text-white' : 'px-4 py-1.5 text-xs font-bold rounded-md text-slate-400';
-            document.getElementById('view-code-btn').className = !isP ? 'px-4 py-1.5 text-xs font-bold rounded-md bg-blue-600 text-white' : 'px-4 py-1.5 text-xs font-bold rounded-md text-slate-400';
+            document.getElementById('view-preview-btn').className = isP ? 'px-4 py-1 text-xs font-bold rounded-md bg-blue-600 text-white' : 'px-4 py-1 text-xs font-bold rounded-md text-slate-400';
+            document.getElementById('view-code-btn').className = !isP ? 'px-4 py-1 text-xs font-bold rounded-md bg-blue-600 text-white' : 'px-4 py-1 text-xs font-bold rounded-md text-slate-400';
         }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('sidebar-collapsed'); }
         function toggleSettings(s) { document.getElementById('settings-modal').classList.toggle('hidden', !s); }
-        function saveState() { localStorage.setItem('builder_v3_projs', JSON.stringify(state.projects)); }
-        function setLoading(l) { document.getElementById('send-btn').disabled = l; document.getElementById('send-btn').innerHTML = l ? "..." : "<i data-lucide='sparkles'></i>"; lucide.createIcons(); }
+        function saveState() { localStorage.setItem('chat_builder_projs', JSON.stringify(state.projects)); }
+        function saveSettings() {
+            state.settings = { url: document.getElementById('setting-url').value, key: document.getElementById('setting-key').value, model: document.getElementById('setting-model').value };
+            localStorage.setItem('chat_builder_sets', JSON.stringify(state.settings));
+            toggleSettings(false);
+        }
+        function setLoading(l) { 
+            const b = document.getElementById('send-btn');
+            b.disabled = l;
+            b.innerHTML = l ? `<div class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>` : `<i data-lucide="send" class="w-6 h-6"></i>`;
+            lucide.createIcons();
+        }
         function downloadCode() {
             const blob = new Blob([state.projects[state.activeIndex].code], { type: 'text/html' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'index.html'; a.click();
