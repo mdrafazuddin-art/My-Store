@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Website Builder Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* CRITICAL FIX: Mobile View (100dvh) */
+        body { 
+            min-height: 100dvh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        
+        /* Custom Scrollbar for Project List */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        /* Preview Iframe Background */
+        #preview-frame { background: white; border-radius: 8px; }
+
+        /* Modal Backdrop */
+        .modal-backdrop { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
+        
+        /* Flex grow logic for main workspace */
+        main { flex: 1; min-height: 0; }
+    </style>
+</head>
+<body class="font-sans">
+
+    <!-- APP WRAPPER -->
+    <div class="flex h-full w-full overflow-hidden">
+        
+        <!-- SIDEBAR (LEFT) -->
+        <aside class="w-64 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col hidden md:flex">
+            <div class="p-4 flex-shrink-0">
+                <button onclick="createNewProject()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
+                    <i data-lucide="plus" class="w-4 h-4"></i> New Project
+                </button>
+            </div>
+            
+            <div id="project-list" class="flex-1 overflow-y-auto custom-scrollbar px-2 py-2 space-y-1">
+                <!-- Projects injected here -->
+            </div>
+
+            <div class="p-4 border-t border-slate-800 flex-shrink-0">
+                <button onclick="toggleSettings(true)" class="w-full text-slate-400 hover:text-white flex items-center gap-3 p-2 rounded transition-colors">
+                    <i data-lucide="settings" class="w-5 h-5"></i> Settings
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 flex flex-col bg-slate-950 min-w-0">
+            
+            <!-- HEADER (TOP) -->
+            <header class="h-14 border-b border-slate-800 flex items-center justify-between px-4 flex-shrink-0">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span id="project-title" class="ml-4 font-medium text-slate-300 truncate max-w-[150px]">Untitled Project</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <div class="bg-slate-800 rounded-md p-1 flex">
+                        <button id="view-preview-btn" onclick="setView('preview')" class="px-3 py-1 text-sm rounded transition-all bg-slate-700 text-white shadow-sm">Preview</button>
+                        <button id="view-code-btn" onclick="setView('code')" class="px-3 py-1 text-sm rounded transition-all text-slate-400 hover:text-white">Code</button>
+                    </div>
+                    <button onclick="downloadCode()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-md text-slate-300 transition-colors" title="Download index.html">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                    </button>
+                    <button class="md:hidden p-2 text-slate-300" onclick="toggleSidebarMobile()">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- WORKSPACE -->
+            <main class="relative p-4">
+                <div id="preview-container" class="h-full w-full">
+                    <iframe id="preview-frame" class="w-full h-full border-0 shadow-2xl"></iframe>
+                </div>
+                <div id="code-container" class="hidden h-full w-full">
+                    <textarea id="code-editor" class="w-full h-full bg-slate-900 text-blue-300 p-4 font-mono text-sm border border-slate-800 rounded-lg outline-none resize-none" spellcheck="false"></textarea>
+                </div>
+            </main>
+
+            <!-- FOOTER (BOTTOM INPUT) -->
+            <footer class="p-4 border-t border-slate-800 bg-slate-950 flex-shrink-0">
+                <div class="max-w-4xl mx-auto flex gap-3">
+                    <textarea id="prompt-input" rows="1" placeholder="Describe the website you want to build..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 resize-none overflow-hidden" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                    <button id="send-btn" onclick="generateWebsite()" class="bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i data-lucide="send" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6">
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <i data-lucide="sliders" class="w-5 h-5"></i> Settings
+            </h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">API URL</label>
+                    <input type="text" id="setting-url" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">API Key</label>
+                    <input type="password" id="setting-key" placeholder="sk-or-..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Model ID</label>
+                    <input type="text" id="setting-model" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <div class="mt-8 flex gap-3">
+                <button onclick="saveSettings()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 rounded-lg transition-colors">Save Changes</button>
+                <button onclick="toggleSettings(false)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 rounded-lg transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SYSTEM LOGIC CONSTANTS
+        const SYSTEM_PROMPT = "You are a web developer. Output ONLY raw HTML code for a complete, single-file website. Include Tailwind CSS via CDN. Do not use markdown code blocks. Ensure the code is responsive and modern.";
+        
+        // DEFAULT CONFIG
+        const DEFAULTS = {
+            url: "https://openrouter.ai/api/v1/chat/completions",
+            key: "",
+            model: "deepseek/deepseek-r1:free"
+        };
+
+        // STATE MANAGEMENT
+        let state = {
+            projects: JSON.parse(localStorage.getItem('ai_builder_projects')) || [],
+            activeIndex: -1,
+            settings: JSON.parse(localStorage.getItem('ai_builder_settings')) || DEFAULTS,
+            view: 'preview' // or 'code'
+        };
+
+        // INITIALIZATION
+        window.onload = () => {
+            lucide.createIcons();
+            renderProjectList();
+            if (state.projects.length > 0) {
+                loadProject(0);
+            } else {
+                createNewProject();
+            }
+            // Populate settings inputs
+            document.getElementById('setting-url').value = state.settings.url;
+            document.getElementById('setting-key').value = state.settings.key;
+            document.getElementById('setting-model').value = state.settings.model;
+        };
+
+        // --- CORE FUNCTIONS ---
+
+        async function generateWebsite() {
+            const promptInput = document.getElementById('prompt-input');
+            const sendBtn = document.getElementById('send-btn');
+            const prompt = promptInput.value.trim();
+            
+            if (!prompt) return;
+            if (!state.settings.key) {
+                alert("Please add your API Key in Settings first!");
+                toggleSettings(true);
+                return;
+            }
+
+            try {
+                setLoading(true);
+                
+                const response = await fetch(state.settings.url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.settings.key}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': 'AI Website Builder'
+                    },
+                    body: JSON.stringify({
+                        model: state.settings.model,
+                        messages: [
+                            { role: "system", content: SYSTEM_PROMPT },
+                            { role: "user", content: prompt }
+                        ]
+                    })
+                });
+
+                // ANTI-CRASH JSON LOGIC
+                const rawText = await response.text();
+                
+                if (!response.ok) {
+                    alert("API Error: " + rawText);
+                    setLoading(false);
+                    return;
+                }
+
+                const data = JSON.parse(rawText);
+                let generatedCode = data.choices[0].message.content;
+
+                // Clean up possible markdown wrappers
+                generatedCode = generatedCode.replace(/```html/g, '').replace(/```/g, '').trim();
+
+                updateCurrentProject(prompt, generatedCode);
+                promptInput.value = "";
+                promptInput.style.height = 'auto';
+
+            } catch (error) {
+                console.error(error);
+                alert("Critical Error: " + error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function updateCurrentProject(prompt, code) {
+            const project = state.projects[state.activeIndex];
+            project.code = code;
+            if (project.title === "Untitled Project") {
+                project.title = prompt.substring(0, 20) + (prompt.length > 20 ? '...' : '');
+            }
+            saveState();
+            renderProjectList();
+            loadProject(state.activeIndex);
+        }
+
+        function loadProject(index) {
+            state.activeIndex = index;
+            const project = state.projects[index];
+            document.getElementById('project-title').textContent = project.title;
+            document.getElementById('code-editor').value = project.code;
+            
+            const iframe = document.getElementById('preview-frame');
+            iframe.srcdoc = project.code;
+            
+            renderProjectList();
+        }
+
+        function createNewProject() {
+            const newProject = {
+                title: "Untitled Project",
+                code: `<!DOCTYPE html><html><body class="flex items-center justify-center h-screen bg-slate-50 font-sans"><div class="text-center"><h1 class="text-4xl font-bold text-slate-800">Your New Website</h1><p class="text-slate-600 mt-2">Describe what you want to build below!</p></div></body></html>`,
+                timestamp: Date.now()
+            };
+            state.projects.unshift(newProject);
+            state.activeIndex = 0;
+            saveState();
+            loadProject(0);
+        }
+
+        function downloadCode() {
+            const code = state.projects[state.activeIndex].code;
+            const blob = new Blob([code], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- UI HELPERS ---
+
+        function renderProjectList() {
+            const list = document.getElementById('project-list');
+            list.innerHTML = '';
+            state.projects.forEach((proj, i) => {
+                const activeClass = i === state.activeIndex ? 'bg-slate-800 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white';
+                list.innerHTML += `
+                    <div onclick="loadProject(${i})" class="group flex items-center justify-between p-2 rounded cursor-pointer transition-all ${activeClass}">
+                        <div class="flex items-center gap-2 truncate">
+                            <i data-lucide="file-code" class="w-4 h-4 flex-shrink-0"></i>
+                            <span class="text-sm truncate">${proj.title}</span>
+                        </div>
+                        <button onclick="deleteProject(event, ${i})" class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function deleteProject(e, index) {
+            e.stopPropagation();
+            state.projects.splice(index, 1);
+            if (state.activeIndex >= state.projects.length) state.activeIndex = 0;
+            if (state.projects.length === 0) createNewProject();
+            saveState();
+            loadProject(state.activeIndex);
+        }
+
+        function setView(view) {
+            state.view = view;
+            const isPreview = view === 'preview';
+            document.getElementById('preview-container').classList.toggle('hidden', !isPreview);
+            document.getElementById('code-container').classList.toggle('hidden', isPreview);
+            
+            document.getElementById('view-preview-btn').className = isPreview 
+                ? 'px-3 py-1 text-sm rounded transition-all bg-slate-700 text-white shadow-sm'
+                : 'px-3 py-1 text-sm rounded transition-all text-slate-400 hover:text-white';
+            
+            document.getElementById('view-code-btn').className = !isPreview 
+                ? 'px-3 py-1 text-sm rounded transition-all bg-slate-700 text-white shadow-sm'
+                : 'px-3 py-1 text-sm rounded transition-all text-slate-400 hover:text-white';
+
+            if (!isPreview) {
+                document.getElementById('code-editor').value = state.projects[state.activeIndex].code;
+            }
+        }
+
+        function toggleSettings(show) {
+            document.getElementById('settings-modal').classList.toggle('hidden', !show);
+        }
+
+        function saveSettings() {
+            state.settings = {
+                url: document.getElementById('setting-url').value || DEFAULTS.url,
+                key: document.getElementById('setting-key').value,
+                model: document.getElementById('setting-model').value || DEFAULTS.model
+            };
+            localStorage.setItem('ai_builder_settings', JSON.stringify(state.settings));
+            toggleSettings(false);
+        }
+
+        function saveState() {
+            localStorage.setItem('ai_builder_projects', JSON.stringify(state.projects));
+        }
+
+        function setLoading(loading) {
+            const btn = document.getElementById('send-btn');
+            const input = document.getElementById('prompt-input');
+            btn.disabled = loading;
+            input.disabled = loading;
+            btn.innerHTML = loading ? `<div class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>` : `<i data-lucide="send" class="w-6 h-6"></i>`;
+            lucide.createIcons();
+        }
+
+        function toggleSidebarMobile() {
+            const sidebar = document.querySelector('aside');
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('fixed');
+            sidebar.classList.toggle('inset-0');
+            sidebar.classList.toggle('z-40');
+            sidebar.classList.toggle('w-full');
+        }
+    </script>
+</body>
+</html>
+```[[1](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQGp4Z6Pqxt9BE_kFQzUU1oyNWNIKmOD2vHhdEgvE08QzSx4qwKeYn5aYMVquLYQt9WOKF2_MiGOXsdPTQNDrFk0Rv7pb27Yycs_gHH14tILKhxmFyPYdAU-u0NXV9Hlt2lgShVQYY0R)]
