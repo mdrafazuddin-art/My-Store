@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Builder Pro (ChatGPT Mode)</title>
+    <title>AI Chat & Builder Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -15,150 +15,153 @@
             background-color: #0d1117; 
             margin: 0; 
             color: #e6edf3;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
         }
 
-        /* ChatGPT Style Bubbles */
-        .chat-scroll { scroll-behavior: smooth; }
-        .msg-user { align-self: flex-end; background: #21262d; border: 1px solid #30363d; border-radius: 1.25rem; max-width: 80%; padding: 0.75rem 1.25rem; margin-bottom: 1rem; }
-        .msg-ai { align-self: flex-start; max-width: 90%; margin-bottom: 2rem; display: flex; gap: 1rem; }
-        .ai-icon { width: 32px; height: 32px; background: #1a7f37; border-radius: 50%; flex-shrink: 0; display: flex; items-center; justify-center; }
+        /* ChatGPT Layout */
+        .chat-user { align-self: flex-end; background: #21262d; border-radius: 1.25rem; padding: 0.75rem 1.25rem; max-width: 80%; border: 1px solid #30363d; margin-bottom: 1rem; }
+        .chat-ai { align-self: flex-start; max-width: 90%; margin-bottom: 2rem; display: flex; gap: 0.8rem; }
+        .ai-avatar { width: 30px; height: 30px; background: #1a7f37; border-radius: 50%; display: flex; items-center; justify-center; flex-shrink: 0; }
 
-        /* Preview Sidebar */
-        #preview-sidebar { 
+        /* Preview Sidebar Animation */
+        #build-side { 
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
             width: 50%; 
             border-left: 1px solid #30363d;
             background: #010409;
+            display: flex;
+            flex-direction: column;
         }
-        #preview-sidebar.collapsed { width: 0; border: none; opacity: 0; pointer-events: none; }
-
-        /* Mobile Layout */
-        @media (max-width: 1024px) {
-            #preview-sidebar { width: 100%; position: absolute; right: 0; top: 0; height: 100%; z-index: 50; }
-        }
+        #build-side.hidden-side { width: 0; border: none; opacity: 0; pointer-events: none; }
 
         iframe { width: 100%; height: 100%; border: none; background: white; border-radius: 8px; }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; }
         
-        .loading-dots:after { content: '.'; animation: dots 1.5s steps(5, end) infinite; }
+        .dot-loader:after { content: '.'; animation: dots 1.5s infinite; }
         @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: ''; } }
     </style>
 </head>
 <body>
 
-    <!-- HEADER -->
-    <header class="h-14 border-b border-[#30363d] flex items-center justify-between px-4 bg-[#161b22] flex-shrink-0">
-        <div class="flex items-center gap-4">
-            <h1 class="font-bold text-white flex items-center gap-2">
-                <i data-lucide="bot" class="text-green-500"></i> AI Builder
-            </h1>
-            <div class="h-4 w-[1px] bg-[#30363d]"></div>
-            <button onclick="createNewChat()" class="text-xs text-gray-400 hover:text-white transition-colors">New Chat</button>
+    <!-- TOP HEADER -->
+    <header class="h-14 border-b border-[#30363d] flex items-center justify-between px-4 bg-[#161b22] flex-shrink-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 text-white font-bold">
+                <i data-lucide="message-square" class="text-green-500 w-5 h-5"></i>
+                <span>AI Chat Builder</span>
+            </div>
+            <button onclick="window.location.reload()" class="ml-4 text-xs text-gray-500 hover:text-white transition-colors">New Chat</button>
         </div>
 
         <div class="flex items-center gap-3">
-            <!-- HIDE/SHOW BUTTON -->
-            <button onclick="togglePreview()" id="toggle-btn" class="flex items-center gap-2 bg-[#21262d] border border-[#30363d] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#30363d] transition-all">
-                <i data-lucide="layout" class="w-4 h-4"></i>
+            <!-- HIDE/SHOW BUILD BUTTON -->
+            <button onclick="toggleBuild()" id="btn-toggle" class="flex items-center gap-2 bg-[#21262d] border border-[#30363d] px-4 py-1.5 rounded-full text-xs font-bold hover:bg-[#30363d] transition-all">
+                <i data-lucide="eye-off" id="toggle-icon" class="w-4 h-4"></i>
                 <span id="toggle-text">Hide Build Side</span>
             </button>
             <button onclick="toggleSettings(true)" class="p-2 text-gray-400 hover:text-white"><i data-lucide="settings" class="w-5 h-5"></i></button>
-            <button onclick="downloadCode()" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold">Download</button>
+            <button onclick="downloadCode()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all">Download</button>
         </div>
     </header>
 
-    <main class="flex flex-1 min-height-0 overflow-hidden relative">
+    <main class="flex flex-1 min-h-0 relative">
         
-        <!-- CHAT SIDE (ChatGPT) -->
+        <!-- CHAT SIDE (Like ChatGPT) -->
         <section class="flex-1 flex flex-col min-w-0 bg-[#0d1117]">
-            <div id="chat-window" class="flex-1 overflow-y-auto p-6 chat-scroll custom-scrollbar flex flex-col">
-                <div class="msg-ai">
-                    <div class="ai-icon"><i data-lucide="sparkles" class="w-4 h-4 text-white"></i></div>
-                    <div class="text-gray-300 pt-1">
-                        I am your AI Website Builder. Describe what you want to build, and I will show the result on the right side.
+            <div id="chat-flow" class="flex-1 overflow-y-auto p-6 custom-scrollbar flex flex-col">
+                <div class="chat-ai">
+                    <div class="ai-avatar"><i data-lucide="bot" class="w-4 h-4 text-white"></i></div>
+                    <div class="text-gray-300 leading-relaxed">
+                        স্বাগতম! আমি আপনার চ্যাট অ্যাসিস্ট্যান্ট এবং ওয়েব ডেভেলপার। সাধারণ কথা বললে আমি শুধু উত্তর দেব, আর যদি ওয়েবসাইট বানাতে বলেন তবে আমি তা ডানপাশে তৈরি করে দেব।
                     </div>
                 </div>
             </div>
 
-            <!-- INPUT BOX -->
-            <div class="p-4 bg-[#0d1117]">
+            <!-- CHAT INPUT -->
+            <div class="p-4">
                 <div class="max-w-3xl mx-auto relative">
-                    <textarea id="user-prompt" rows="1" placeholder="Message AI Builder..." 
+                    <textarea id="prompt-input" rows="1" placeholder="Message AI..." 
                         class="w-full bg-[#161b22] border border-[#30363d] rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-1 focus:ring-green-500 transition-all resize-none pr-14"
                         oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 200) + 'px'"></textarea>
-                    <button id="send-btn" onclick="handleChat()" class="absolute right-3 bottom-3 p-2 bg-white rounded-xl text-black hover:bg-gray-200 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all">
+                    <button id="send-btn" onclick="askAI()" class="absolute right-3 bottom-3 p-2 bg-white rounded-xl text-black hover:bg-gray-200 transition-all disabled:opacity-50">
                         <i data-lucide="arrow-up" class="w-5 h-5"></i>
                     </button>
                 </div>
-                <p class="text-[10px] text-center text-gray-500 mt-2">AI Builder can make mistakes. Check important info.</p>
+                <p class="text-[10px] text-center text-gray-600 mt-2 italic">AI built for professional web creation.</p>
             </div>
         </section>
 
-        <!-- BUILD SIDE (PREVIEW) -->
-        <section id="preview-sidebar" class="p-4 flex flex-col gap-3">
-            <div class="flex items-center justify-between text-xs text-gray-400 font-mono bg-[#161b22] p-2 rounded border border-[#30363d]">
-                <span>LIVE PREVIEW</span>
-                <div class="flex gap-2">
-                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                    <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
-                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+        <!-- BUILD SIDE (The Website Side) -->
+        <section id="build-side" class="p-4 gap-3">
+            <div class="flex items-center justify-between text-[10px] text-gray-500 font-mono tracking-widest uppercase px-1">
+                <span>Web Preview</span>
+                <div class="flex gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-[#30363d]"></div>
+                    <div class="w-2 h-2 rounded-full bg-[#30363d]"></div>
                 </div>
             </div>
-            <div class="flex-1 rounded-lg overflow-hidden border border-[#30363d] bg-white relative">
-                <iframe id="build-frame"></iframe>
-                <div id="preview-loader" class="hidden absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm">
-                    <div class="bg-[#161b22] px-4 py-2 rounded-full text-xs font-bold border border-[#30363d]">UPDATING SITE...</div>
+            <div class="flex-1 bg-white rounded-xl overflow-hidden shadow-2xl relative border border-[#30363d]">
+                <iframe id="web-frame"></iframe>
+                <div id="build-overlay" class="hidden absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                    <div class="bg-[#161b22] px-6 py-3 rounded-full border border-[#30363d] text-xs font-bold flex items-center gap-2">
+                        <i data-lucide="code" class="w-4 h-4 text-green-500 animate-pulse"></i> Building Site...
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
     <!-- SETTINGS -->
-    <div id="settings-modal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div id="settings-modal" class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-[#161b22] border border-[#30363d] w-full max-w-md rounded-2xl p-8">
-            <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-white">API Settings</h2>
+            <h2 class="text-xl font-bold mb-6 text-white">API Settings</h2>
             <div class="space-y-4">
-                <input type="text" id="api-url" placeholder="API URL" class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm focus:border-green-500 outline-none">
-                <input type="password" id="api-key" placeholder="OpenRouter Key (sk-or-...)" class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm focus:border-green-500 outline-none">
-                <input type="text" id="api-model" placeholder="Model ID" class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm focus:border-green-500 outline-none">
+                <input type="text" id="api-url" placeholder="API URL" class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm focus:border-green-500 outline-none text-white">
+                <input type="password" id="api-key" placeholder="OpenRouter API Key" class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm focus:border-green-500 outline-none text-white">
+                <input type="text" id="api-model" placeholder="Model ID" class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm focus:border-green-500 outline-none text-white">
             </div>
             <div class="mt-8 flex gap-3">
-                <button onclick="saveSettings()" class="flex-1 bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200">Save Changes</button>
-                <button onclick="toggleSettings(false)" class="flex-1 bg-[#30363d] text-white font-bold py-3 rounded-xl">Cancel</button>
+                <button onclick="saveConfig()" class="flex-1 bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-100">Save</button>
+                <button onclick="toggleSettings(false)" class="flex-1 bg-[#30363d] text-white font-bold py-3 rounded-xl">Close</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- CORE SYSTEM ---
-        const SYSTEM_PROMPT = "You are a professional Web Builder AI. Output ONLY raw HTML/Tailwind CSS code for a single-file website. NEVER include <think> tags, NEVER include markdown (```), and NEVER include citations like [[1](...)]. If the user asks for changes, rewrite the code to include them. Just output code.";
-        const CONFIG = JSON.parse(localStorage.getItem('chat_build_v4_cfg')) || { url: "https://openrouter.ai/api/v1/chat/completions", key: "", model: "deepseek/deepseek-r1:free" };
+        // --- LOGIC ---
+        const SYSTEM_INSTRUCTION = `You are a helpful AI Assistant.
+        - If the user just wants to chat (e.g., Hi, how are you, tell me a joke), respond normally as a chat assistant.
+        - ONLY when the user asks for a website, component, or code, provide the FULL HTML/Tailwind CSS code.
+        - If you provide code, ensure it starts with <!DOCTYPE html> or contains <html> tags.
+        - NEVER output <think> tags or internal reasoning in the final response.
+        - Output ONLY text for chat, and ONLY raw HTML if building. No Markdown code blocks.`;
+
+        const STORAGE_KEY = 'v5_chat_builder_config';
+        const CONFIG = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { url: "https://openrouter.ai/api/v1/chat/completions", key: "", model: "deepseek/deepseek-r1:free" };
         
         let chatHistory = [];
-        let currentCode = `<html><script src="https://cdn.tailwindcss.com"><\/script><body class="bg-slate-900 text-slate-500 flex items-center justify-center h-screen font-sans"><h1>Your website will appear here</h1></body></html>`;
-        let isPreviewVisible = true;
+        let currentWebsiteCode = `<html><script src="https://cdn.tailwindcss.com"><\/script><body class="bg-gray-50 flex items-center justify-center h-screen font-sans text-gray-400"><div>Website Preview will appear here</div></body></html>`;
+        let buildVisible = true;
 
         window.onload = () => {
             lucide.createIcons();
-            document.getElementById('build-frame').srcdoc = currentCode;
+            document.getElementById('web-frame').srcdoc = currentWebsiteCode;
             document.getElementById('api-url').value = CONFIG.url;
             document.getElementById('api-key').value = CONFIG.key;
             document.getElementById('api-model').value = CONFIG.model;
         };
 
-        // --- CHAT LOGIC ---
-        async function handleChat() {
-            const input = document.getElementById('user-prompt');
+        async function askAI() {
+            const input = document.getElementById('prompt-input');
             const prompt = input.value.trim();
             if (!prompt || !CONFIG.key) { if(!CONFIG.key) toggleSettings(true); return; }
 
-            // 1. Update UI
-            addMessage('user', prompt);
+            // User message UI
+            appendMsg('user', prompt);
             input.value = "";
             input.style.height = 'auto';
-            const aiMsgDiv = addMessage('ai', 'Building your request<span class="loading-dots"></span>');
+            const aiLoading = appendMsg('ai', '<span class="dot-loader">Thinking</span>');
             
             try {
                 setLoading(true);
@@ -168,104 +171,96 @@
                     body: JSON.stringify({
                         model: CONFIG.model,
                         messages: [
-                            { role: "system", content: SYSTEM_PROMPT + "\n\nCurrent Website Code:\n" + currentCode },
+                            { role: "system", content: SYSTEM_INSTRUCTION + "\n\nCurrent Website Code:\n" + currentWebsiteCode },
                             ...chatHistory,
                             { role: "user", content: prompt }
                         ]
                     })
                 });
 
-                // 2. Anti-Crash Text Processing
                 const rawText = await response.text();
-                if (!response.ok) { aiMsgDiv.innerHTML = "API Error: " + rawText; return; }
+                if (!response.ok) { aiLoading.innerHTML = "API Error. Check Settings."; return; }
                 
                 const data = JSON.parse(rawText);
                 let content = data.choices[0].message.content;
 
-                // 3. STRICT FILTER: Clean all reasoning and markdown
-                content = content.replace(/<think>[\s\S]*?<\/think>/gi, ''); // Remove reasoning
-                content = content.replace(/```html/gi, '').replace(/```/g, '').trim(); // Remove markdown
-                content = content.replace(/\[\[\d+\]\(https?:\/\/[^\)]+\)\]/g, ''); // Remove citations
+                // CLEANING: Remove <think> and Reasoning
+                content = content.replace(/<think>[\s\S]*?<\/think>/gi, ''); 
+                content = content.replace(/```html/gi, '').replace(/```/g, '').trim();
+                content = content.replace(/\[\[\d+\]\(https?:\/\/[^\)]+\)\]/g, ''); 
 
-                // 4. Update Website Side
-                currentCode = content;
-                document.getElementById('build-frame').srcdoc = content;
-                
-                // 5. Update Chat Side
+                // DETECT IF IT'S A BUILD OR JUST CHAT
+                const isCode = content.toLowerCase().includes('<html') || content.toLowerCase().includes('<!doctype');
+
+                if (isCode) {
+                    currentWebsiteCode = content;
+                    document.getElementById('web-frame').srcdoc = content;
+                    aiLoading.innerHTML = "আমি আপনার ওয়েবসাইটটি আপডেট করে দিয়েছি। ডানপাশে দেখুন।";
+                    if(!buildVisible) toggleBuild(); // ওয়েবসাইট বানালে অটো শো করবে
+                } else {
+                    aiLoading.innerHTML = content;
+                }
+
                 chatHistory.push({ role: "user", content: prompt });
-                chatHistory.push({ role: "assistant", content: "I've updated the website." });
-                aiMsgDiv.innerHTML = "I've updated the website for you! You can see the changes on the right.";
-                
-                // Show preview if it was hidden
-                if (!isPreviewVisible) togglePreview();
+                chatHistory.push({ role: "assistant", content: content });
 
             } catch (err) {
-                aiMsgDiv.innerHTML = "Error: " + err.message;
+                aiLoading.innerHTML = "Connection Error: " + err.message;
             } finally {
                 setLoading(false);
             }
         }
 
-        function addMessage(role, text) {
-            const container = document.getElementById('chat-window');
-            const wrapper = document.createElement('div');
-            wrapper.className = role === 'user' ? 'msg-user' : 'msg-ai';
+        function appendMsg(role, text) {
+            const flow = document.getElementById('chat-flow');
+            const div = document.createElement('div');
+            div.className = role === 'user' ? 'chat-user' : 'chat-ai';
             
             if (role === 'ai') {
-                wrapper.innerHTML = `<div class="ai-icon"><i data-lucide="sparkles" class="w-4 h-4 text-white"></i></div><div class="text-gray-300 pt-1">${text}</div>`;
+                div.innerHTML = `<div class="ai-avatar"><i data-lucide="sparkles" class="w-4 h-4 text-white"></i></div><div class="text-gray-300 pt-1 leading-relaxed">${text}</div>`;
             } else {
-                wrapper.textContent = text;
+                div.textContent = text;
             }
             
-            container.appendChild(wrapper);
-            container.scrollTop = container.scrollHeight;
+            flow.appendChild(div);
+            flow.scrollTop = flow.scrollHeight;
             lucide.createIcons();
-            return role === 'ai' ? wrapper.querySelector('.text-gray-300') : wrapper;
+            return role === 'ai' ? div.querySelector('.text-gray-300') : div;
         }
 
-        // --- UI HELPERS ---
-        function togglePreview() {
-            isPreviewVisible = !isPreviewVisible;
-            const sidebar = document.getElementById('preview-sidebar');
+        function toggleBuild() {
+            buildVisible = !buildVisible;
+            const side = document.getElementById('build-side');
+            const icon = document.getElementById('toggle-icon');
             const text = document.getElementById('toggle-text');
-            const btn = document.getElementById('toggle-btn');
 
-            if (isPreviewVisible) {
-                sidebar.classList.remove('collapsed');
+            if (buildVisible) {
+                side.classList.remove('hidden-side');
                 text.textContent = "Hide Build Side";
-                btn.classList.add('bg-green-900/20');
+                icon.setAttribute('data-lucide', 'eye-off');
             } else {
-                sidebar.classList.add('collapsed');
+                side.classList.add('hidden-side');
                 text.textContent = "Show Build Side";
-                btn.classList.remove('bg-green-900/20');
+                icon.setAttribute('data-lucide', 'eye');
             }
+            lucide.createIcons();
         }
 
-        function toggleSettings(show) { document.getElementById('settings-modal').classList.toggle('hidden', !show); }
-
-        function saveSettings() {
+        function toggleSettings(s) { document.getElementById('settings-modal').classList.toggle('hidden', !s); }
+        function saveConfig() {
             CONFIG.url = document.getElementById('api-url').value;
             CONFIG.key = document.getElementById('api-key').value;
             CONFIG.model = document.getElementById('api-model').value;
-            localStorage.setItem('chat_build_v4_cfg', JSON.stringify(CONFIG));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(CONFIG));
             toggleSettings(false);
         }
-
-        function createNewChat() {
-            if(confirm("Start a new chat? This will clear your history.")) {
-                localStorage.removeItem('chat_build_v4_cfg'); // Optional: delete history too
-                location.reload();
-            }
-        }
-
         function setLoading(l) {
             document.getElementById('send-btn').disabled = l;
-            document.getElementById('preview-loader').classList.toggle('hidden', !l);
+            document.getElementById('build-overlay').classList.toggle('hidden', !l);
         }
-
         function downloadCode() {
-            const blob = new Blob([currentCode], { type: 'text/html' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'index.html'; a.click();
+            const blob = new Blob([currentWebsiteCode], { type: 'text/html' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'website.html'; a.click();
         }
     </script>
 </body>
