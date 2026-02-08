@@ -7,27 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* CRITICAL: Force strictly full screen and no scrolling outside app */
-        body { 
-            height: 100vh;
-            height: 100dvh; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; 
-            background-color: #0f172a;
-            margin: 0;
-        }
-        
+        body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background-color: #0f172a; margin: 0; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-
         #preview-frame { background: white; border-radius: 8px; transition: all 0.3s ease; }
         .modal-backdrop { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
-        
         main { flex: 1; min-height: 0; position: relative; }
-        
-        /* Sidebar Transition */
         aside { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .sidebar-collapsed { width: 0 !important; overflow: hidden; border: none !important; }
     </style>
@@ -35,56 +20,43 @@
 <body class="font-sans text-slate-200">
 
     <div class="flex h-full w-full overflow-hidden">
-        
-        <!-- SIDEBAR -->
         <aside id="sidebar" class="w-64 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col z-20">
             <div class="p-4 flex-shrink-0">
-                <button onclick="createNewProject()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-900/20">
+                <button onclick="createNewProject()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg">
                     <i data-lucide="plus" class="w-4 h-4"></i> New Project
                 </button>
             </div>
-            
-            <div id="project-list" class="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-1">
-                <!-- Projects injected here -->
-            </div>
-
+            <div id="project-list" class="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-1"></div>
             <div class="p-4 border-t border-slate-800 flex-shrink-0 space-y-2">
                 <button onclick="toggleSettings(true)" class="w-full text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-3 p-2.5 rounded-lg transition-colors">
                     <i data-lucide="settings" class="w-5 h-5"></i> Settings
                 </button>
+                <button onclick="localStorage.clear(); location.reload();" class="w-full text-slate-500 hover:text-red-400 text-xs text-left px-2.5 italic">
+                    Clear Data/Reset App
+                </button>
             </div>
         </aside>
 
-        <!-- MAIN CONTENT AREA -->
-        <div class="flex-1 flex flex-col bg-slate-950 min-w-0 relative">
-            
-            <!-- HEADER -->
-            <header class="h-14 border-b border-slate-800 flex items-center justify-between px-4 flex-shrink-0 bg-slate-900/50 backdrop-blur-md">
+        <div class="flex-1 flex flex-col bg-slate-950 min-w-0">
+            <header class="h-14 border-b border-slate-800 flex items-center justify-between px-4 flex-shrink-0 bg-slate-900/50">
                 <div class="flex items-center gap-3">
-                    <!-- Sidebar Toggle Button -->
-                    <button onclick="toggleSidebar()" class="p-1.5 hover:bg-slate-800 rounded-md text-slate-400" title="Toggle Sidebar">
-                        <i data-lucide="panel-left" class="w-5 h-5"></i>
-                    </button>
+                    <button onclick="toggleSidebar()" class="p-1.5 hover:bg-slate-800 rounded-md text-slate-400"><i data-lucide="panel-left" class="w-5 h-5"></i></button>
                     <div class="flex items-center gap-1.5 ml-2">
-                        <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
                     <span id="project-title" class="ml-4 font-semibold text-slate-300 truncate max-w-[200px]">Untitled Project</span>
                 </div>
-
                 <div class="flex items-center gap-2">
                     <div class="bg-slate-800/50 rounded-lg p-1 flex border border-slate-700">
-                        <button id="view-preview-btn" onclick="setView('preview')" class="px-4 py-1.5 text-xs font-bold rounded-md transition-all bg-blue-600 text-white shadow-lg">PREVIEW</button>
-                        <button id="view-code-btn" onclick="setView('code')" class="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-400 hover:text-white">CODE</button>
+                        <button id="view-preview-btn" onclick="setView('preview')" class="px-4 py-1.5 text-xs font-bold rounded-md bg-blue-600 text-white">PREVIEW</button>
+                        <button id="view-code-btn" onclick="setView('code')" class="px-4 py-1.5 text-xs font-bold rounded-md text-slate-400">CODE</button>
                     </div>
-                    <button onclick="downloadCode()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-300 transition-colors border border-slate-700" title="Export HTML">
-                        <i data-lucide="download" class="w-5 h-5"></i>
-                    </button>
+                    <button onclick="downloadCode()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-300 border border-slate-700"><i data-lucide="download" class="w-5 h-5"></i></button>
                 </div>
             </header>
 
-            <!-- WORKSPACE -->
             <main class="p-4">
                 <div id="preview-container" class="h-full w-full">
                     <iframe id="preview-frame" class="w-full h-full border-0 shadow-2xl"></iframe>
@@ -94,16 +66,11 @@
                 </div>
             </main>
 
-            <!-- FOOTER INPUT -->
             <footer class="p-4 border-t border-slate-800 bg-slate-900/50 flex-shrink-0">
                 <div class="max-w-5xl mx-auto flex gap-3">
-                    <div class="flex-1 relative">
-                        <textarea id="prompt-input" rows="1" placeholder="Type instructions to build or edit your site..." 
-                            class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white placeholder-slate-500 resize-none transition-all" 
-                            oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 200) + 'px'"></textarea>
-                    </div>
-                    <button id="send-btn" onclick="generateWebsite()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center shadow-lg shadow-blue-600/20 active:scale-95">
-                        <i data-lucide="sparkles" class="w-5 h-5 mr-2"></i> <span>Build</span>
+                    <textarea id="prompt-input" rows="1" placeholder="Type instructions..." class="flex-1 bg-slate-800 border border-slate-700 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none" oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 200) + 'px'"></textarea>
+                    <button id="send-btn" onclick="generateWebsite()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-2xl transition-all disabled:opacity-50 active:scale-95">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
                     </button>
                 </div>
             </footer>
@@ -113,56 +80,36 @@
     <!-- SETTINGS MODAL -->
     <div id="settings-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl shadow-2xl p-8">
-            <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
-                <i data-lucide="settings" class="w-6 h-6 text-blue-500"></i> Settings
-            </h2>
-            
+            <h2 class="text-2xl font-bold mb-6 flex items-center gap-3"><i data-lucide="settings" class="w-6 h-6 text-blue-500"></i> Settings</h2>
             <div class="space-y-5">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">API Endpoint</label>
-                    <input type="text" id="setting-url" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">API Endpoint</label>
+                    <input type="text" id="setting-url" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">OpenRouter API Key</label>
-                    <input type="password" id="setting-key" placeholder="sk-or-..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">OpenRouter API Key (Paste here)</label>
+                    <input type="password" id="setting-key" placeholder="sk-or-..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">AI Model</label>
-                    <input type="text" id="setting-model" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">AI Model</label>
+                    <input type="text" id="setting-model" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-blue-500 outline-none">
                 </div>
             </div>
-
             <div class="mt-10 flex gap-3">
-                <button onclick="saveSettings()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20">Save Configuration</button>
-                <button onclick="toggleSettings(false)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all">Cancel</button>
+                <button onclick="saveSettings()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all">Save</button>
+                <button onclick="toggleSettings(false)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-        // SYSTEM LOGIC
-        const SYSTEM_PROMPT = "You are a world-class web developer. Output ONLY valid, raw, single-file HTML code including CSS (Tailwind CDN) and any necessary JS. Never include markdown explanations, never include code blocks (```), and never include grounding/search citations. Just the code.";
-        
-        const DEFAULTS = {
-            url: "https://openrouter.ai/api/v1/chat/completions",
-            key: "",
-            model: "deepseek/deepseek-r1:free"
-        };
-
-        let state = {
-            projects: JSON.parse(localStorage.getItem('ai_builder_projects_v2')) || [],
-            activeIndex: -1,
-            settings: JSON.parse(localStorage.getItem('ai_builder_settings_v2')) || DEFAULTS,
-            view: 'preview'
-        };
+        const SYSTEM_PROMPT = "You are a web developer. Output ONLY raw HTML/Tailwind code. No markdown, no code blocks, no grounding citations.";
+        const DEFAULTS = { url: "https://openrouter.ai/api/v1/chat/completions", key: "", model: "deepseek/deepseek-r1:free" };
+        let state = { projects: JSON.parse(localStorage.getItem('builder_v3_projs')) || [], activeIndex: -1, settings: JSON.parse(localStorage.getItem('builder_v3_sets')) || DEFAULTS };
 
         window.onload = () => {
             lucide.createIcons();
-            if (state.projects.length > 0) {
-                loadProject(0);
-            } else {
-                createNewProject();
-            }
+            if (state.projects.length > 0) { loadProject(0); } else { createNewProject(); }
             document.getElementById('setting-url').value = state.settings.url;
             document.getElementById('setting-key').value = state.settings.key;
             document.getElementById('setting-model').value = state.settings.model;
@@ -172,129 +119,86 @@
             const promptInput = document.getElementById('prompt-input');
             const prompt = promptInput.value.trim();
             if (!prompt) return;
-            if (!state.settings.key) { alert("Please set API Key in Settings!"); toggleSettings(true); return; }
+            if (!state.settings.key) { alert("ERROR: You must enter your API Key in Settings!"); toggleSettings(true); return; }
 
             try {
                 setLoading(true);
                 const response = await fetch(state.settings.url, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${state.settings.key}`,
-                        'Content-Type': 'application/json'
+                        'Authorization': `Bearer ${state.settings.key.trim()}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.href, // Added for OpenRouter
+                        'X-Title': 'AI Website Builder'
                     },
                     body: JSON.stringify({
                         model: state.settings.model,
-                        messages: [
-                            { role: "system", content: SYSTEM_PROMPT },
-                            { role: "user", content: prompt }
-                        ]
+                        messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: prompt }]
                     })
                 });
 
-                // ANTI-CRASH LOGIC
                 const text = await response.text();
                 if (!response.ok) { alert("API Error: " + text); return; }
                 
                 const data = JSON.parse(text);
                 let rawCode = data.choices[0].message.content;
 
-                // CLEANING LOGIC: Delete "the latter" (Citations and Markdown)
-                // 1. Remove Markdown code blocks if present
+                // Strip Citations and Markdown
                 rawCode = rawCode.replace(/```html/gi, '').replace(/```/g, '').trim();
-                // 2. Remove Grounding/Vertex citations e.g. [[1](...)]
                 rawCode = rawCode.replace(/\[\[\d+\]\(https?:\/\/[^\)]+\)\]/g, ''); 
 
-                updateCurrentProject(prompt, rawCode);
-                promptInput.value = "";
-                promptInput.style.height = 'auto';
+                state.projects[state.activeIndex].code = rawCode;
+                state.projects[state.activeIndex].title = prompt.substring(0, 20) + "...";
+                saveState(); loadProject(state.activeIndex);
+                promptInput.value = ""; promptInput.style.height = 'auto';
             } catch (e) {
-                alert("Error: " + e.message);
+                alert("Critical Error: " + e.message);
             } finally {
                 setLoading(false);
             }
         }
 
-        function updateCurrentProject(prompt, code) {
-            const project = state.projects[state.activeIndex];
-            project.code = code;
-            if (project.title === "Untitled Project") {
-                project.title = prompt.substring(0, 25).replace(/[<>:"/\\|?*]/g, '') + "...";
-            }
-            saveState();
-            renderProjectList();
-            loadProject(state.activeIndex);
-        }
-
-        function loadProject(index) {
-            state.activeIndex = index;
-            const project = state.projects[index];
-            document.getElementById('project-title').textContent = project.title;
-            document.getElementById('code-editor').value = project.code;
-            document.getElementById('preview-frame').srcdoc = project.code;
-            renderProjectList();
+        function loadProject(i) {
+            state.activeIndex = i;
+            const p = state.projects[i];
+            document.getElementById('project-title').textContent = p.title;
+            document.getElementById('code-editor').value = p.code;
+            document.getElementById('preview-frame').srcdoc = p.code;
+            renderList();
         }
 
         function createNewProject() {
-            const p = {
-                title: "Untitled Project",
-                code: `<!DOCTYPE html><html><script src="https://cdn.tailwindcss.com"><\/script><body class="bg-slate-50 flex items-center justify-center h-screen"><div class="text-center font-sans"><h1 class="text-5xl font-black text-slate-900">Ready to build?</h1><p class="text-slate-500 mt-4 text-xl">Describe your vision in the box below.</p></div></body></html>`,
-                ts: Date.now()
-            };
-            state.projects.unshift(p);
-            saveState();
-            loadProject(0);
+            state.projects.unshift({ title: "Untitled Project", code: `<html><script src="https://cdn.tailwindcss.com"><\/script><body class="bg-slate-900 text-white flex items-center justify-center h-screen font-sans"><h1>Type below to start...</h1></body></html>` });
+            saveState(); loadProject(0);
         }
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('sidebar-collapsed');
-        }
-
-        function setView(view) {
-            state.view = view;
-            const isP = view === 'preview';
-            document.getElementById('preview-container').classList.toggle('hidden', !isP);
-            document.getElementById('code-container').classList.toggle('hidden', isP);
-            document.getElementById('view-preview-btn').className = isP ? 'px-4 py-1.5 text-xs font-bold rounded-md transition-all bg-blue-600 text-white shadow-lg' : 'px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-400 hover:text-white';
-            document.getElementById('view-code-btn').className = !isP ? 'px-4 py-1.5 text-xs font-bold rounded-md transition-all bg-blue-600 text-white shadow-lg' : 'px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-400 hover:text-white';
-        }
-
-        function renderProjectList() {
-            const list = document.getElementById('project-list');
-            list.innerHTML = state.projects.map((p, i) => `
-                <div onclick="loadProject(${i})" class="group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${i === state.activeIndex ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20' : 'text-slate-400 hover:bg-slate-800'}">
-                    <span class="text-sm font-medium truncate pr-2">${p.title}</span>
-                    <button onclick="event.stopPropagation(); state.projects.splice(${i},1); saveState(); loadProject(0);" class="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
-                </div>
-            `).join('');
-            lucide.createIcons();
+        function renderList() {
+            document.getElementById('project-list').innerHTML = state.projects.map((p, i) => `
+                <div onclick="loadProject(${i})" class="p-3 rounded-xl cursor-pointer ${i === state.activeIndex ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'text-slate-400 hover:bg-slate-800'}">
+                    <span class="text-sm truncate block">${p.title}</span>
+                </div>`).join('');
         }
 
         function saveSettings() {
-            state.settings = {
-                url: document.getElementById('setting-url').value || DEFAULTS.url,
-                key: document.getElementById('setting-key').value,
-                model: document.getElementById('setting-model').value || DEFAULTS.model
-            };
-            localStorage.setItem('ai_builder_settings_v2', JSON.stringify(state.settings));
+            state.settings = { url: document.getElementById('setting-url').value, key: document.getElementById('setting-key').value, model: document.getElementById('setting-model').value };
+            localStorage.setItem('builder_v3_sets', JSON.stringify(state.settings));
             toggleSettings(false);
         }
 
-        function toggleSettings(s) { document.getElementById('settings-modal').classList.toggle('hidden', !s); }
-        function saveState() { localStorage.setItem('ai_builder_projects_v2', JSON.stringify(state.projects)); }
-        function setLoading(l) { 
-            const b = document.getElementById('send-btn');
-            b.disabled = l;
-            b.innerHTML = l ? `<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>` : `<i data-lucide="sparkles" class="w-5 h-5 mr-2"></i> <span>Build</span>`;
-            lucide.createIcons();
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('sidebar-collapsed'); }
+        function setView(v) { 
+            const isP = v === 'preview';
+            document.getElementById('preview-container').classList.toggle('hidden', !isP);
+            document.getElementById('code-container').classList.toggle('hidden', isP);
+            document.getElementById('view-preview-btn').className = isP ? 'px-4 py-1.5 text-xs font-bold rounded-md bg-blue-600 text-white' : 'px-4 py-1.5 text-xs font-bold rounded-md text-slate-400';
+            document.getElementById('view-code-btn').className = !isP ? 'px-4 py-1.5 text-xs font-bold rounded-md bg-blue-600 text-white' : 'px-4 py-1.5 text-xs font-bold rounded-md text-slate-400';
         }
+        function toggleSettings(s) { document.getElementById('settings-modal').classList.toggle('hidden', !s); }
+        function saveState() { localStorage.setItem('builder_v3_projs', JSON.stringify(state.projects)); }
+        function setLoading(l) { document.getElementById('send-btn').disabled = l; document.getElementById('send-btn').innerHTML = l ? "..." : "<i data-lucide='sparkles'></i>"; lucide.createIcons(); }
         function downloadCode() {
             const blob = new Blob([state.projects[state.activeIndex].code], { type: 'text/html' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'index.html';
-            a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'index.html'; a.click();
         }
     </script>
 </body>
