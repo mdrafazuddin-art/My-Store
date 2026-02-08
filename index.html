@@ -3,234 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Website Architect</title>
+    <title>AI Builder Pro (ChatGPT Mode)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* CRITICAL: Full Screen Layout */
         body { 
             height: 100dvh; 
             display: flex; 
             flex-direction: column; 
             overflow: hidden; 
-            background-color: #0b0f1a; 
+            background-color: #0d1117; 
             margin: 0; 
-            color: #e2e8f0;
+            color: #e6edf3;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        /* ChatGPT Style Chat Bubbles */
-        .message-user { background: #2563eb; color: white; border-radius: 15px 15px 2px 15px; align-self: flex-end; }
-        .message-ai { background: #1e293b; color: #cbd5e1; border-radius: 15px 15px 15px 2px; align-self: flex-start; border: 1px solid #334155; }
+        /* ChatGPT Style Bubbles */
+        .chat-scroll { scroll-behavior: smooth; }
+        .msg-user { align-self: flex-end; background: #21262d; border: 1px solid #30363d; border-radius: 1.25rem; max-width: 80%; padding: 0.75rem 1.25rem; margin-bottom: 1rem; }
+        .msg-ai { align-self: flex-start; max-width: 90%; margin-bottom: 2rem; display: flex; gap: 1rem; }
+        .ai-icon { width: 32px; height: 32px; background: #1a7f37; border-radius: 50%; flex-shrink: 0; display: flex; items-center; justify-center; }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-
-        /* Split Screen logic */
-        main { display: flex; flex: 1; min-height: 0; }
-        #chat-section { width: 350px; display: flex; flex-direction: column; border-right: 1px solid #1e293b; background: #0f172a; }
-        #preview-section { flex: 1; background: #020617; padding: 15px; position: relative; }
-        
-        iframe { background: white; border-radius: 12px; width: 100%; height: 100%; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        
-        .sidebar-collapsed #chat-section { display: none; }
-        
-        /* Mobile adjustment */
-        @media (max-width: 768px) {
-            #chat-section { width: 100%; position: absolute; z-index: 40; height: 100%; }
-            .hidden-mobile { display: none; }
+        /* Preview Sidebar */
+        #preview-sidebar { 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+            width: 50%; 
+            border-left: 1px solid #30363d;
+            background: #010409;
         }
+        #preview-sidebar.collapsed { width: 0; border: none; opacity: 0; pointer-events: none; }
+
+        /* Mobile Layout */
+        @media (max-width: 1024px) {
+            #preview-sidebar { width: 100%; position: absolute; right: 0; top: 0; height: 100%; z-index: 50; }
+        }
+
+        iframe { width: 100%; height: 100%; border: none; background: white; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; }
+        
+        .loading-dots:after { content: '.'; animation: dots 1.5s steps(5, end) infinite; }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: ''; } }
     </style>
 </head>
 <body>
 
-    <!-- TOP HEADER -->
-    <header class="h-14 border-b border-slate-800 flex items-center justify-between px-4 bg-slate-900/80 backdrop-blur-md flex-shrink-0">
-        <div class="flex items-center gap-3">
-            <button onclick="createNewProject()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
-                <i data-lucide="plus" class="w-4 h-4"></i> New Website
-            </button>
-            <div class="h-6 w-[1px] bg-slate-700 hidden md:block"></div>
-            <span id="project-title" class="text-slate-400 text-sm font-medium truncate max-w-[150px]">Project: Untitled</span>
+    <!-- HEADER -->
+    <header class="h-14 border-b border-[#30363d] flex items-center justify-between px-4 bg-[#161b22] flex-shrink-0">
+        <div class="flex items-center gap-4">
+            <h1 class="font-bold text-white flex items-center gap-2">
+                <i data-lucide="bot" class="text-green-500"></i> AI Builder
+            </h1>
+            <div class="h-4 w-[1px] bg-[#30363d]"></div>
+            <button onclick="createNewChat()" class="text-xs text-gray-400 hover:text-white transition-colors">New Chat</button>
         </div>
 
-        <div class="flex items-center gap-2">
-            <div class="bg-slate-800 rounded-lg p-1 flex border border-slate-700">
-                <button id="btn-preview" onclick="toggleView('preview')" class="px-4 py-1 text-xs font-bold rounded-md bg-blue-600 text-white">PREVIEW</button>
-                <button id="btn-code" onclick="toggleView('code')" class="px-4 py-1 text-xs font-bold rounded-md text-slate-400">CODE</button>
-            </div>
-            <button onclick="toggleSettings(true)" class="p-2 text-slate-400 hover:text-white"><i data-lucide="settings" class="w-5 h-5"></i></button>
-            <button onclick="downloadCode()" class="bg-slate-800 p-2 rounded-lg text-slate-300 border border-slate-700"><i data-lucide="download" class="w-5 h-5"></i></button>
+        <div class="flex items-center gap-3">
+            <!-- HIDE/SHOW BUTTON -->
+            <button onclick="togglePreview()" id="toggle-btn" class="flex items-center gap-2 bg-[#21262d] border border-[#30363d] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#30363d] transition-all">
+                <i data-lucide="layout" class="w-4 h-4"></i>
+                <span id="toggle-text">Hide Build Side</span>
+            </button>
+            <button onclick="toggleSettings(true)" class="p-2 text-gray-400 hover:text-white"><i data-lucide="settings" class="w-5 h-5"></i></button>
+            <button onclick="downloadCode()" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold">Download</button>
         </div>
     </header>
 
-    <main>
-        <!-- LEFT: CHAT INTERFACE (ChatGPT Style) -->
-        <section id="chat-section">
-            <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar flex flex-col">
-                <div class="message-ai p-3 text-sm">
-                    Hello! Describe the website you want to build, and I will create it live on the right side.
+    <main class="flex flex-1 min-height-0 overflow-hidden relative">
+        
+        <!-- CHAT SIDE (ChatGPT) -->
+        <section class="flex-1 flex flex-col min-w-0 bg-[#0d1117]">
+            <div id="chat-window" class="flex-1 overflow-y-auto p-6 chat-scroll custom-scrollbar flex flex-col">
+                <div class="msg-ai">
+                    <div class="ai-icon"><i data-lucide="sparkles" class="w-4 h-4 text-white"></i></div>
+                    <div class="text-gray-300 pt-1">
+                        I am your AI Website Builder. Describe what you want to build, and I will show the result on the right side.
+                    </div>
                 </div>
             </div>
-            
-            <!-- INPUT AREA -->
-            <div class="p-4 border-t border-slate-800 bg-slate-900/50">
-                <div class="relative">
-                    <textarea id="user-input" rows="1" placeholder="Type instructions..." 
-                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none pr-12"
-                        oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 150) + 'px'"></textarea>
-                    <button id="send-btn" onclick="handleSend()" class="absolute right-2 bottom-2 p-2 bg-blue-600 rounded-lg text-white hover:bg-blue-500 disabled:opacity-50">
+
+            <!-- INPUT BOX -->
+            <div class="p-4 bg-[#0d1117]">
+                <div class="max-w-3xl mx-auto relative">
+                    <textarea id="user-prompt" rows="1" placeholder="Message AI Builder..." 
+                        class="w-full bg-[#161b22] border border-[#30363d] rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-1 focus:ring-green-500 transition-all resize-none pr-14"
+                        oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 200) + 'px'"></textarea>
+                    <button id="send-btn" onclick="handleChat()" class="absolute right-3 bottom-3 p-2 bg-white rounded-xl text-black hover:bg-gray-200 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all">
                         <i data-lucide="arrow-up" class="w-5 h-5"></i>
                     </button>
                 </div>
+                <p class="text-[10px] text-center text-gray-500 mt-2">AI Builder can make mistakes. Check important info.</p>
             </div>
         </section>
 
-        <!-- RIGHT: LIVE PREVIEW -->
-        <section id="preview-section">
-            <div id="view-iframe" class="h-full w-full">
-                <iframe id="preview-frame"></iframe>
+        <!-- BUILD SIDE (PREVIEW) -->
+        <section id="preview-sidebar" class="p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between text-xs text-gray-400 font-mono bg-[#161b22] p-2 rounded border border-[#30363d]">
+                <span>LIVE PREVIEW</span>
+                <div class="flex gap-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                </div>
             </div>
-            <div id="view-code" class="h-full w-full hidden">
-                <textarea id="code-editor" class="w-full h-full bg-slate-950 text-blue-300 p-6 font-mono text-sm border border-slate-800 rounded-xl outline-none resize-none" spellcheck="false"></textarea>
+            <div class="flex-1 rounded-lg overflow-hidden border border-[#30363d] bg-white relative">
+                <iframe id="build-frame"></iframe>
+                <div id="preview-loader" class="hidden absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm">
+                    <div class="bg-[#161b22] px-4 py-2 rounded-full text-xs font-bold border border-[#30363d]">UPDATING SITE...</div>
+                </div>
             </div>
         </section>
     </main>
 
-    <!-- SETTINGS MODAL -->
-    <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i data-lucide="key" class="text-blue-500"></i> API Settings</h2>
+    <!-- SETTINGS -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-[#161b22] border border-[#30363d] w-full max-w-md rounded-2xl p-8">
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-white">API Settings</h2>
             <div class="space-y-4">
-                <input type="text" id="set-url" placeholder="API URL" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm">
-                <input type="password" id="set-key" placeholder="OpenRouter API Key" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm">
-                <input type="text" id="set-model" placeholder="Model ID" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm">
+                <input type="text" id="api-url" placeholder="API URL" class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm focus:border-green-500 outline-none">
+                <input type="password" id="api-key" placeholder="OpenRouter Key (sk-or-...)" class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm focus:border-green-500 outline-none">
+                <input type="text" id="api-model" placeholder="Model ID" class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm focus:border-green-500 outline-none">
             </div>
-            <div class="mt-6 flex gap-2">
-                <button onclick="saveSettings()" class="flex-1 bg-blue-600 py-2 rounded-lg font-bold">Save</button>
-                <button onclick="toggleSettings(false)" class="flex-1 bg-slate-800 py-2 rounded-lg font-bold">Close</button>
+            <div class="mt-8 flex gap-3">
+                <button onclick="saveSettings()" class="flex-1 bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200">Save Changes</button>
+                <button onclick="toggleSettings(false)" class="flex-1 bg-[#30363d] text-white font-bold py-3 rounded-xl">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- CONFIG ---
-        const SYSTEM_PROMPT = "You are an AI Website Builder. Output ONLY raw HTML/Tailwind CSS code. Do not include markdown (```), do not include <think> tags, and do not explain your work. If the user asks for changes, rewrite the code to incorporate them.";
-        const DEFAULTS = { url: "https://openrouter.ai/api/v1/chat/completions", key: "", model: "deepseek/deepseek-r1:free" };
-
-        let state = {
-            history: [],
-            currentCode: `<html><script src="https://cdn.tailwindcss.com"><\/script><body class="bg-slate-100 flex items-center justify-center h-screen font-sans"><div class="text-center text-slate-400"><h1>Website Preview will appear here</h1></div></body></html>`,
-            settings: JSON.parse(localStorage.getItem('builder_settings')) || DEFAULTS
-        };
+        // --- CORE SYSTEM ---
+        const SYSTEM_PROMPT = "You are a professional Web Builder AI. Output ONLY raw HTML/Tailwind CSS code for a single-file website. NEVER include <think> tags, NEVER include markdown (```), and NEVER include citations like [[1](...)]. If the user asks for changes, rewrite the code to include them. Just output code.";
+        const CONFIG = JSON.parse(localStorage.getItem('chat_build_v4_cfg')) || { url: "https://openrouter.ai/api/v1/chat/completions", key: "", model: "deepseek/deepseek-r1:free" };
+        
+        let chatHistory = [];
+        let currentCode = `<html><script src="https://cdn.tailwindcss.com"><\/script><body class="bg-slate-900 text-slate-500 flex items-center justify-center h-screen font-sans"><h1>Your website will appear here</h1></body></html>`;
+        let isPreviewVisible = true;
 
         window.onload = () => {
             lucide.createIcons();
-            document.getElementById('preview-frame').srcdoc = state.currentCode;
-            document.getElementById('set-url').value = state.settings.url;
-            document.getElementById('set-key').value = state.settings.key;
-            document.getElementById('set-model').value = state.settings.model;
+            document.getElementById('build-frame').srcdoc = currentCode;
+            document.getElementById('api-url').value = CONFIG.url;
+            document.getElementById('api-key').value = CONFIG.key;
+            document.getElementById('api-model').value = CONFIG.model;
         };
 
-        async function handleSend() {
-            const input = document.getElementById('user-input');
-            const text = input.value.trim();
-            if (!text || !state.settings.key) { if(!state.settings.key) toggleSettings(true); return; }
+        // --- CHAT LOGIC ---
+        async function handleChat() {
+            const input = document.getElementById('user-prompt');
+            const prompt = input.value.trim();
+            if (!prompt || !CONFIG.key) { if(!CONFIG.key) toggleSettings(true); return; }
 
-            // 1. Add to UI
-            addChatMessage('user', text);
+            // 1. Update UI
+            addMessage('user', prompt);
             input.value = "";
             input.style.height = 'auto';
-
+            const aiMsgDiv = addMessage('ai', 'Building your request<span class="loading-dots"></span>');
+            
             try {
                 setLoading(true);
-                
-                // 2. Build ChatGPT-style history
-                const messages = [
-                    { role: "system", content: SYSTEM_PROMPT + "\n\nCurrent Website Code:\n" + state.currentCode },
-                    ...state.history,
-                    { role: "user", content: text }
-                ];
-
-                const response = await fetch(state.settings.url, {
+                const response = await fetch(CONFIG.url, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${state.settings.key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ model: state.settings.model, messages: messages })
+                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: CONFIG.model,
+                        messages: [
+                            { role: "system", content: SYSTEM_PROMPT + "\n\nCurrent Website Code:\n" + currentCode },
+                            ...chatHistory,
+                            { role: "user", content: prompt }
+                        ]
+                    })
                 });
 
-                // 3. Anti-Crash & Thinking Removal Logic
+                // 2. Anti-Crash Text Processing
                 const rawText = await response.text();
-                if (!response.ok) { alert("Error: " + rawText); return; }
+                if (!response.ok) { aiMsgDiv.innerHTML = "API Error: " + rawText; return; }
                 
                 const data = JSON.parse(rawText);
                 let content = data.choices[0].message.content;
 
-                // REMOVE THINKING TAGS (the text in your screenshot)
-                content = content.replace(/<think>[\s\S]*?<\/think>/gi, '');
-                // REMOVE MARKDOWN
-                content = content.replace(/```html/gi, '').replace(/```/g, '').trim();
-                // REMOVE CITATIONS
-                content = content.replace(/\[\[\d+\]\(https?:\/\/[^\)]+\)\]/g, '');
+                // 3. STRICT FILTER: Clean all reasoning and markdown
+                content = content.replace(/<think>[\s\S]*?<\/think>/gi, ''); // Remove reasoning
+                content = content.replace(/```html/gi, '').replace(/```/g, '').trim(); // Remove markdown
+                content = content.replace(/\[\[\d+\]\(https?:\/\/[^\)]+\)\]/g, ''); // Remove citations
 
-                // 4. Update Preview
-                state.currentCode = content;
-                state.history.push({ role: "user", content: text });
-                state.history.push({ role: "assistant", content: "Website updated." });
+                // 4. Update Website Side
+                currentCode = content;
+                document.getElementById('build-frame').srcdoc = content;
                 
-                document.getElementById('preview-frame').srcdoc = content;
-                document.getElementById('code-editor').value = content;
-                addChatMessage('ai', "I've updated the website for you!");
+                // 5. Update Chat Side
+                chatHistory.push({ role: "user", content: prompt });
+                chatHistory.push({ role: "assistant", content: "I've updated the website." });
+                aiMsgDiv.innerHTML = "I've updated the website for you! You can see the changes on the right.";
+                
+                // Show preview if it was hidden
+                if (!isPreviewVisible) togglePreview();
 
             } catch (err) {
-                alert("Critical Error: " + err.message);
+                aiMsgDiv.innerHTML = "Error: " + err.message;
             } finally {
                 setLoading(false);
             }
         }
 
-        function addChatMessage(role, text) {
-            const container = document.getElementById('chat-container');
-            const div = document.createElement('div');
-            div.className = `p-3 text-sm ${role === 'user' ? 'message-user' : 'message-ai'}`;
-            div.textContent = text;
-            container.appendChild(div);
+        function addMessage(role, text) {
+            const container = document.getElementById('chat-window');
+            const wrapper = document.createElement('div');
+            wrapper.className = role === 'user' ? 'msg-user' : 'msg-ai';
+            
+            if (role === 'ai') {
+                wrapper.innerHTML = `<div class="ai-icon"><i data-lucide="sparkles" class="w-4 h-4 text-white"></i></div><div class="text-gray-300 pt-1">${text}</div>`;
+            } else {
+                wrapper.textContent = text;
+            }
+            
+            container.appendChild(wrapper);
             container.scrollTop = container.scrollHeight;
+            lucide.createIcons();
+            return role === 'ai' ? wrapper.querySelector('.text-gray-300') : wrapper;
         }
 
-        function toggleView(view) {
-            const isPreview = view === 'preview';
-            document.getElementById('view-iframe').classList.toggle('hidden', !isPreview);
-            document.getElementById('view-code').classList.toggle('hidden', isPreview);
-            document.getElementById('btn-preview').className = isPreview ? 'px-4 py-1 text-xs font-bold rounded-md bg-blue-600 text-white' : 'px-4 py-1 text-xs font-bold rounded-md text-slate-400';
-            document.getElementById('btn-code').className = !isPreview ? 'px-4 py-1 text-xs font-bold rounded-md bg-blue-600 text-white' : 'px-4 py-1 text-xs font-bold rounded-md text-slate-400';
-            if(!isPreview) document.getElementById('code-editor').value = state.currentCode;
-        }
+        // --- UI HELPERS ---
+        function togglePreview() {
+            isPreviewVisible = !isPreviewVisible;
+            const sidebar = document.getElementById('preview-sidebar');
+            const text = document.getElementById('toggle-text');
+            const btn = document.getElementById('toggle-btn');
 
-        function saveSettings() {
-            state.settings = { 
-                url: document.getElementById('set-url').value, 
-                key: document.getElementById('set-key').value, 
-                model: document.getElementById('set-model').value 
-            };
-            localStorage.setItem('builder_settings', JSON.stringify(state.settings));
-            toggleSettings(false);
-        }
-
-        function createNewProject() {
-            if(confirm("Start a new project? Current work will be lost.")) {
-                location.reload();
+            if (isPreviewVisible) {
+                sidebar.classList.remove('collapsed');
+                text.textContent = "Hide Build Side";
+                btn.classList.add('bg-green-900/20');
+            } else {
+                sidebar.classList.add('collapsed');
+                text.textContent = "Show Build Side";
+                btn.classList.remove('bg-green-900/20');
             }
         }
 
         function toggleSettings(show) { document.getElementById('settings-modal').classList.toggle('hidden', !show); }
-        function downloadCode() {
-            const blob = new Blob([state.currentCode], { type: 'text/html' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'index.html'; a.click();
+
+        function saveSettings() {
+            CONFIG.url = document.getElementById('api-url').value;
+            CONFIG.key = document.getElementById('api-key').value;
+            CONFIG.model = document.getElementById('api-model').value;
+            localStorage.setItem('chat_build_v4_cfg', JSON.stringify(CONFIG));
+            toggleSettings(false);
         }
-        function setLoading(l) { 
-            const b = document.getElementById('send-btn');
-            b.disabled = l;
-            b.innerHTML = l ? '<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>' : '<i data-lucide="arrow-up" class="w-5 h-5"></i>';
-            lucide.createIcons();
+
+        function createNewChat() {
+            if(confirm("Start a new chat? This will clear your history.")) {
+                localStorage.removeItem('chat_build_v4_cfg'); // Optional: delete history too
+                location.reload();
+            }
+        }
+
+        function setLoading(l) {
+            document.getElementById('send-btn').disabled = l;
+            document.getElementById('preview-loader').classList.toggle('hidden', !l);
+        }
+
+        function downloadCode() {
+            const blob = new Blob([currentCode], { type: 'text/html' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'index.html'; a.click();
         }
     </script>
 </body>
