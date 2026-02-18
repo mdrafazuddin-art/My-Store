@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>মোবাইল অপ্টিমাইজড</title>
+    <title>গ্রোসারি পস সিস্টেম - সুপাবেস সংযোগ</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,6 +13,9 @@
 
     <!-- Google Fonts for Bengali -->
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         body {
@@ -36,7 +39,7 @@
            ========================================== */
         @media print {
             @page {
-                size: 80mm auto; /* Standard Thermal Printer Width */
+                size: 80mm auto;
                 margin: 0;
             }
             body { 
@@ -44,12 +47,9 @@
                 -webkit-print-color-adjust: exact; 
                 print-color-adjust: exact; 
             }
-            
-            /* Hide UI Elements */
             body > * { display: none !important; }
             .no-print { display: none !important; }
 
-            /* Show Memo Only */
             body.printing-memo #memo-modal {
                 display: block !important;
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -60,14 +60,13 @@
                 max-width: 100% !important; height: auto !important; border-radius: 0 !important;
                 margin: 0 !important; display: block !important;
             }
-            body.printing-memo #memo-modal > div > div:first-child { display: none !important; } /* Hide Modal Header */
+            body.printing-memo #memo-modal > div > div:first-child { display: none !important; }
             body.printing-memo #memo-print-area {
                 display: block !important; position: relative; width: 100%;
                 color: black !important; background: white !important; border: none !important;
                 padding: 10px !important; overflow: visible !important; font-size: 12px;
             }
 
-            /* Show Report Only */
             body.printing-report #report-print-container {
                 display: block !important; position: absolute; top: 0; left: 0; width: 100%;
                 background: white !important; color: black !important; z-index: 9999;
@@ -76,7 +75,6 @@
                 font-size: 12px;
             }
 
-            /* Force Text Colors */
             body.printing-report #report-print-container *, 
             body.printing-memo #memo-print-area * {
                 color: #000 !important; border-color: #000 !important;
@@ -96,6 +94,15 @@
     
     <script>
         // ==========================================
+        // SUPABASE CONFIGURATION
+        // ==========================================
+        // REPLACE THESE WITH YOUR ACTUAL KEYS
+        const SUPABASE_URL = https://dpvairveaqyuwewivaku.supabase.co;
+        const SUPABASE_ANON_KEY = sb_publishable_5ZTEbRp_b0_sMd4qWCRF_w_ksT9eg24;
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ==========================================
         // CONFIGURATION & STATE INIT
         // ==========================================
         const CONFIG = {
@@ -104,14 +111,9 @@
         };
 
         const initialState = {
-            products: [
-                { id: 1, name: 'মিনিকেট চাল (১ কেজি)', buyPrice: 90, sellPrice: 100, stock: 50, location: 'তাক ১' },
-                { id: 2, name: 'সয়াবিন তেল (১ লিটার)', buyPrice: 160, sellPrice: 180, stock: 30, location: 'তাক ২' },
-                { id: 3, name: 'দেশি পেঁয়াজ (১ কেজি)', buyPrice: 70, sellPrice: 85, stock: 100, location: 'তাক ১' },
-                { id: 4, name: 'আলু (১ কেজি)', buyPrice: 30, sellPrice: 40, stock: 200, location: 'তাক ৩' }
-            ],
+            products: [], // Loaded from DB
             cart: [],
-            salesHistory: [], 
+            salesHistory: [], // Loaded from DB
             settings: {
                 shopName: "আপনার দোকান",
                 proprietor: "প্রোপাইটর নাম",
@@ -123,30 +125,80 @@
 
         let state = JSON.parse(JSON.stringify(initialState));
 
-        function saveData() {
-            localStorage.setItem('pos_bangla_data', JSON.stringify({
-                products: state.products,
-                salesHistory: state.salesHistory,
-                settings: state.settings
-            }));
-        }
-
-        function loadData() {
-            const data = localStorage.getItem('pos_bangla_data');
-            if (data) {
-                const parsed = JSON.parse(data);
-                state.products = parsed.products || [];
-                state.salesHistory = parsed.salesHistory || [];
-                state.settings = { ...state.settings, ...parsed.settings };
+        // ==========================================
+        // DATABASE FUNCTIONS (ASYNC)
+        // ==========================================
+        
+        async function fetchProducts() {
+            try {
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .order('id', { ascending: true });
+                
+                if (error) throw error;
+                state.products = data;
+                renderProducts();
+            } catch (err) {
+                console.error("Error loading products:", err);
+                showToast("পণ্য লোড হতে সমস্যা হয়নি", "error");
             }
         }
+
+        async function fetchSalesHistory() {
+            try {
+                const { data, error } = await supabase
+                    .from('sales')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                state.salesHistory = data;
+            } catch (err) {
+                console.error("Error loading sales:", err);
+                // Toast skipped for sales to not annoy user on load
+            }
+        }
+
+        async function fetchSettings() {
+            try {
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+                
+                if (error) throw error;
+                if (data) {
+                    state.settings = {
+                        shopName: data.shop_name || "আপনার দোকান",
+                        proprietor: data.proprietor || "প্রোপাইটর নাম",
+                        mobile: data.mobile || "01700000000",
+                        pin: data.pin || CONFIG.DEFAULT_PIN
+                    };
+                    updateSettingsUI();
+                }
+            } catch (err) {
+                console.error("Error loading settings:", err);
+                // Use default state
+            }
+        }
+
+        async function syncData() {
+            await fetchProducts();
+            await fetchSalesHistory();
+            await fetchSettings();
+            renderCart();
+        }
+
+        // Remove LocalStorage usage, replaced by DB sync
     </script>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden">
 
     <div id="app" class="flex flex-col h-full w-full relative">
         
-        <!-- HEADER (Compact on Mobile) -->
+        <!-- HEADER -->
         <header class="bg-emerald-700 text-white shadow-md z-20 shrink-0 cursor-pointer select-none no-print" onclick="goHome()">
             <div class="max-w-7xl mx-auto px-3 h-14 md:h-16 flex items-center justify-between">
                 <div class="flex items-center gap-2 md:gap-3">
@@ -170,7 +222,6 @@
                 
                 <!-- Product Grid Section -->
                 <div class="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden relative">
-                    <!-- Search Bar -->
                     <div class="p-3 bg-white shadow-sm z-10 shrink-0">
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-magnifying-glass"></i></span>
@@ -178,35 +229,26 @@
                                 class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm md:text-base text-slate-700 shadow-sm">
                         </div>
                     </div>
-
-                    <!-- Grid: 2 cols on mobile, 4 on PC -->
-                    <!-- Reduced gap and padding for compact mobile view -->
                     <div id="product-grid" class="flex-1 overflow-y-auto p-2 md:p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 content-start pb-24 md:pb-10"></div>
                 </div>
 
-                <!-- Cart Panel (Bottom Sheet on Mobile, Sidebar on Desktop) -->
-                <!-- z-50 ensures it is above FAB (z-40) and Header (z-20) -->
+                <!-- Cart Panel -->
                 <div id="cart-panel" class="w-full md:w-96 bg-white border-l border-slate-200 flex flex-col shadow-2xl z-50 fixed md:relative bottom-0 h-[55vh] md:h-full transform translate-y-full md:translate-y-0 transition-transform duration-300 ease-out rounded-t-2xl md:rounded-none bottom-sheet-shadow">
                     
-                    <!-- Mobile Handle (Visible only on mobile) -->
                     <div class="md:hidden w-full flex flex-col items-center pt-2 pb-1 cursor-grab active:cursor-grabbing bg-slate-50" onclick="toggleMobileCart()">
                         <div class="w-12 h-1.5 bg-slate-400 rounded-full mb-2"></div>
                     </div>
 
-                    <!-- Cart Header -->
                     <div class="px-3 py-2 md:p-4 border-b border-slate-100 flex justify-between items-center bg-white md:bg-white">
                         <div class="flex items-center gap-2 cursor-pointer md:cursor-default flex-1" onclick="toggleMobileCart()">
                             <h2 class="font-bold text-base md:text-lg text-emerald-800"><i class="fa-solid fa-list-ul mr-1 md:mr-2"></i>বিক্রি তালিকা</h2>
-                            <!-- Down arrow icon for mobile to indicate closing -->
                             <i class="fa-solid fa-chevron-down md:hidden text-slate-400" id="mobile-cart-icon"></i>
                         </div>
                         <button onclick="clearCart(event)" class="text-xs md:text-sm text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded hover:bg-red-50 transition shrink-0">মুছুন</button>
                     </div>
 
-                    <!-- Cart Items (Scrollable) -->
                     <div id="cart-items" class="flex-1 overflow-y-auto p-2 md:p-3 space-y-2"></div>
 
-                    <!-- Cart Footer (Totals & Checkout) -->
                     <div class="p-3 bg-white border-t border-slate-200 space-y-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0">
                         <div class="flex justify-between items-center text-xs md:text-sm font-medium text-slate-600">
                             <span>মোট পণ্য:</span>
@@ -224,15 +266,10 @@
             </div>
 
             <!-- ADMIN MODE -->
-            <!-- FIX: h-full and overflow-hidden are critical for mobile scrolling context -->
             <div id="admin-view" class="hidden w-full h-full bg-slate-100 flex flex-col md:flex-row overflow-hidden">
-                
-                <!-- Sidebar -->
-                <!-- FIX: h-auto on mobile (collapses to content), h-full on desktop -->
                 <div class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 h-auto md:h-full no-print z-10">
                     <div class="p-4 border-b border-slate-700"><p class="text-xs uppercase tracking-wider font-semibold text-slate-500">অ্যাডমিন প্যানেল</p><h3 class="text-white font-bold mt-1">ম্যানেজমেন্ট</h3></div>
                     
-                    <!-- Navigation -->
                     <nav class="flex-1 overflow-y-auto py-4 space-y-1">
                         <button onclick="switchAdminTab('inventory')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent active-tab"><i class="fa-solid fa-boxes-stacked w-6"></i> পণ্য তালিকা</button>
                         <button onclick="switchAdminTab('reports')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent"><i class="fa-solid fa-chart-line w-6"></i> বিক্রয় রিপোর্ট</button>
@@ -247,21 +284,18 @@
                 </div>
 
                 <!-- Admin Content -->
-                <!-- FIX: min-h-0 is ESSENTIAL for flex children to scroll properly. flex-1 takes available space. -->
                 <div class="flex-1 overflow-y-auto min-h-0 p-2 md:p-8">
                     
                     <!-- Tab: Inventory -->
                     <div id="tab-inventory" class="admin-content space-y-2 md:space-y-4">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 md:gap-3">
-                            <!-- Reduced margin on mobile headers -->
                             <h2 class="text-lg md:text-2xl font-bold text-slate-800">পণ্য ইনভেনটরি</h2>
                             <button onclick="openProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition text-sm"><i class="fa-solid fa-plus mr-2"></i> নতুন পণ্য</button>
                         </div>
                         
-                        <!-- Table Container for Mobile Scroll -->
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200">
                             <div class="overflow-x-auto">
-                                <table class="w-full text-left text-sm text-slate-600 min-w-[600px]"> <!-- min-w forces scroll on mobile -->
+                                <table class="w-full text-left text-sm text-slate-600 min-w-[600px]">
                                     <thead class="bg-slate-50 text-slate-700 uppercase font-semibold">
                                         <tr>
                                             <th class="px-4 py-3">পণ্যের নাম</th>
@@ -287,7 +321,6 @@
                             </button>
                         </div>
                         
-                        <!-- Filters -->
                         <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 no-print">
                             <h3 class="font-bold text-lg text-slate-700 border-b pb-2">ফিল্টার করুন</h3>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -308,14 +341,12 @@
                             </div>
                         </div>
 
-                        <!-- Summary Cards -->
                         <div id="report-summary-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-100"><p class="text-sm text-blue-600 mb-1">মোট বিক্রয়</p><p id="report-total-sales" class="text-xl md:text-2xl font-bold text-blue-800">৳ ০</p></div>
                             <div class="bg-orange-50 p-4 md:p-6 rounded-xl border border-orange-100"><p class="text-sm text-orange-600 mb-1">মোট খরচ</p><p id="report-total-cost" class="text-xl md:text-2xl font-bold text-orange-800">৳ ০</p></div>
                             <div class="bg-emerald-50 p-4 md:p-6 rounded-xl border border-emerald-100"><p class="text-sm text-emerald-600 mb-1">মোট লাভ</p><p id="report-profit" class="text-xl md:text-2xl font-bold text-emerald-800">৳ ০</p></div>
                         </div>
 
-                        <!-- Detailed Sales Table -->
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div class="p-4 border-b border-slate-200 bg-slate-50 font-bold text-slate-700">বিক্রয়ের বিস্তারিত তালিকা</div>
                             <div class="overflow-x-auto max-h-80">
@@ -363,7 +394,6 @@
     </div>
 
     <!-- MOBILE FLOATING ACTION BUTTON (FAB) -->
-    <!-- z-40: Below Cart Panel (z-50), above other content -->
     <button onclick="toggleMobileCart()" class="md:hidden fixed bottom-4 right-4 z-40 bg-emerald-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-105 active:scale-95 border-4 border-white">
         <i class="fa-solid fa-cart-shopping text-xl"></i>
         <span id="fab-count" class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-100 opacity-0 transition-opacity transform scale-0">0</span>
@@ -376,7 +406,7 @@
             <div id="login-view">
                 <h3 class="text-xl font-bold text-center mb-4 text-slate-800">অ্যাডমিন লগইন</h3>
                 <p class="text-sm text-slate-500 text-center mb-4">প্যানেলে ঢোকার জন্য পাসওয়ার্ড দিন</p>
-                <input type="password" id="auth-pin" class="w-full text-center text-3xl tracking-[0.5em] mb-4 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="•••••">
+                <input type="password" id="auth-pin" class="w-full text-center text-3xl tracking-[0.5em] mb-4 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="••••••">
                 <button onclick="verifyAdmin()" class="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium text-lg">লগইন</button>
                 <div class="mt-4 text-center"><button onclick="toggleForgotPassword(true)" class="text-sm text-blue-600 hover:underline">পাসওয়ার্ড ভুলে গেছেন?</button></div>
             </div>
@@ -486,18 +516,15 @@
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATION CONTAINER: Fixed to Bottom-Center to avoid overlap -->
-    <div id="toast-container" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none no-print w-full max-w-sm px-4"></div>
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[60] flex flex flex-col items-center gap-2 pointer-events-none no-print w-full max-w-sm px-4"></div>
 
     <script>
         // ==========================================
-        // INIT & LOAD
+        // INIT & LOAD (ASYNC)
         // ==========================================
-        function init() {
-            loadData(); 
-            renderProducts();
-            renderCart();
-            updateSettingsUI();
+        async function init() {
+            await syncData();
             document.getElementById('product-search').addEventListener('input', (e) => renderProducts(e.target.value));
         }
 
@@ -553,7 +580,7 @@
             generateReport('all');
         }
 
-        function deleteHistoryBasedOnFilter() {
+        async function deleteHistoryBasedOnFilter() {
             const dateInput = document.getElementById('report-date').value;
             const monthInput = document.getElementById('report-month').value;
 
@@ -567,16 +594,28 @@
             else if (monthInput) confirmMsg += `\n(নির্দিষ্ট মাস: ${monthInput})`;
 
             if (confirm(confirmMsg)) {
-                if (dateInput) {
-                    state.salesHistory = state.salesHistory.filter(s => !s.date.startsWith(dateInput));
-                } else if (monthInput) {
-                    state.salesHistory = state.salesHistory.filter(s => !s.date.startsWith(monthInput));
+                try {
+                    let query = supabase.from('sales');
+
+                    if (dateInput) {
+                        query = query.filter('date', 'like', `${dateInput}%`);
+                    } else if (monthInput) {
+                        query = query.filter('date', 'like', `${monthInput}%`);
+                    }
+
+                    const { error } = await query.delete();
+                    
+                    if (error) throw error;
+
+                    // Reload data
+                    await fetchSalesHistory();
+                    document.getElementById('report-date').value = "";
+                    document.getElementById('report-month').value = "";
+                    generateReport('all');
+                    showToast("নির্দিষ্ট ইতিহাস মুছে ফেলা হয়েছে", "success");
+                } catch (err) {
+                    showToast("ডিলিট মুছতে সমস্যা হয়নি", "error");
                 }
-                saveData();
-                document.getElementById('report-date').value = "";
-                document.getElementById('report-month').value = "";
-                generateReport('all');
-                showToast("নির্দিষ্ট ইতিহাস মুছে ফেলা হয়েছে", "success");
             }
         }
 
@@ -670,7 +709,6 @@
             const filtered = state.products.filter(p => p.name.toLowerCase().includes(searchFilter));
             filtered.forEach(p => {
                 const isOutOfStock = p.stock <= 0;
-                // Reduced padding for compact mobile view: p-2 (was p-2.5)
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-lg shadow-sm border ${isOutOfStock ? 'border-red-200 bg-red-50' : 'border-slate-200'} p-2 flex flex-col justify-between hover:shadow-md transition-shadow h-full`;
                 card.innerHTML = `
@@ -682,7 +720,7 @@
                         <span class="font-bold text-emerald-600 text-base">৳ ${p.sellPrice}</span>
                         <span class="text-[10px] px-1.5 py-0.5 rounded-full ${isOutOfStock ? 'bg-red-200 text-red-700' : 'bg-slate-100 text-slate-600'}">স্টক: ${p.stock}</span>
                     </div>
-                    <button onclick="addToCart(${p.id})" ${isOutOfStock ? 'disabled' : ''} class="mt-2 w-full py-1.5 rounded-lg font-medium text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white active:scale-95'}">
+                    <button onclick="addToCart('${p.id}')" ${isOutOfStock ? 'disabled' : ''} class="mt-2 w-full py-1.5 rounded-lg font-medium text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white active:scale-95'}">
                         ${isOutOfStock ? 'স্টক নেই' : 'কার্টে যোগ'}
                     </button>`;
                 grid.appendChild(card);
@@ -705,7 +743,7 @@
         function renderCart() {
             const container = document.getElementById('cart-items');
             const totalEl = document.getElementById('cart-total');
-            const countEl = document.getElementById('cart-count-badge');
+            const countEl = document('cart-count-badge');
             const fabCountEl = document.getElementById('fab-count');
             const checkoutBtn = document.getElementById('checkout-btn');
             container.innerHTML = "";
@@ -734,7 +772,6 @@
                     const div = document.createElement('div');
                     div.className = "flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-50 p-2 rounded border border-slate-100 gap-2";
                     
-                    // Input HTML Structure (Larger buttons for touch)
                     const inputHtml = `
                         <div class="flex items-center gap-1 w-full sm:w-auto justify-between sm:justify-start bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                             <button onclick="updateQty(${item.id}, -1)" class="w-9 h-9 rounded bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-600 flex items-center justify-center text-lg font-bold transition-colors">-</button>
@@ -828,23 +865,74 @@
 
         function clearCart(e) { if(e) e.stopPropagation(); if(confirm("সমস্ত তালিকা মুছে ফেলতে চান?")) { state.cart = []; renderCart(); } }
 
-        function handleCheckout() {
+        async function handleCheckout() {
             if (state.cart.length === 0) return;
-            let totalSell = 0, totalCost = 0;
-            const memoItems = [], historyItems = [];
-            [...state.cart].forEach(item => {
-                const product = state.products.find(p => p.id === item.id);
-                const itemSell = product.sellPrice * item.qty;
-                const itemCost = product.buyPrice * item.qty;
-                totalSell += itemSell; totalCost += itemCost; product.stock -= item.qty;
-                memoItems.push({ name: product.name, qty: item.qty, rate: product.sellPrice, total: itemSell });
-                historyItems.push({ name: product.name, qty: item.qty, price: product.sellPrice, time: new Date().toISOString() });
-            });
-            const profit = totalSell - totalCost;
-            state.salesHistory.push({ id: Date.now(), date: new Date().toISOString(), items: historyItems, totalSell, totalCost, profit });
-            saveData();
-            showMemo(memoItems, totalSell);
-            state.cart = []; renderCart(); renderProducts();
+            
+            try {
+                let totalSell = 0, totalCost = 0;
+                const memoItems = [], historyItems = [];
+                const productUpdates = []; // To update stock in DB
+
+                [...state.cart].forEach(item => {
+                    const product = state.products.find(p => p.id === item.id);
+                    const itemSell = product.sellPrice * item.qty;
+                    const itemCost = product.buyPrice * item.qty;
+                    totalSell += itemSell; 
+                    totalCost += itemCost; 
+                    
+                    // Add to update queue
+                    productUpdates.push({
+                        id: product.id,
+                        stock: product.stock - item.qty
+                    });
+
+                    memoItems.push({ name: product.name, qty: item.qty, rate: product.sellPrice, total: itemSell });
+                    historyItems.push({ name: product.name, qty: item.qty, price: product.sellPrice, time: new Date().toISOString() });
+                });
+                const profit = totalSell - totalCost;
+
+                // 1. Insert Sale into DB
+                const { data: saleData, error: saleError } = await supabase
+                    .from('sales')
+                    .insert({
+                        items: historyItems,
+                        total_sell: totalSell,
+                        total_cost: totalCost,
+                        profit: profit,
+                        date: new Date().toISOString()
+                    });
+
+                if (saleError) throw saleError;
+
+                // 2. Update Stocks in DB
+                const { error: stockError } = await supabase
+                    .from('products')
+                    .upsert(productUpdates);
+
+                if (stockError) throw stockError;
+
+                // 3. Update Local State and UI
+                // Optimistic UI update
+                state.salesHistory.push(saleData[0]); // Use returned data
+                state.salesHistory.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)); // Sort by date
+                
+                // Optimistic Product State Update
+                productUpdates.forEach(update => {
+                    const p = state.products.find(p => p.id === update.id);
+                    if(p) p.stock = update.stock;
+                });
+
+                showMemo(memoItems, totalSell);
+                state.cart = []; 
+                renderCart(); 
+                renderProducts();
+
+                showToast("চালান সফল সম্পন্ন হয়েছে!", "success");
+
+            } catch (err) {
+                console.error(err);
+                showToast("চালান সফল করতে সমস্যা হয়নি: " + err.message, "error");
+            }
         }
 
         function showMemo(items, total) {
@@ -874,13 +962,17 @@
 
         function exitAdminMode() { state.isAdminUnlocked = false; switchView('worker'); showToast("লগআউট সফল", "info"); }
         function toggleForgotPassword(show) { if(show) { document.getElementById('login-view').classList.add('hidden'); document.getElementById('reset-view').classList.remove('hidden'); } else { document.getElementById('login-view').classList.remove('hidden'); document.getElementById('reset-view').classList.add('hidden'); } }
-        function resetPassword() { const code = document.getElementById('reset-code').value; if(code === CONFIG.MASTER_RESET_CODE) { state.settings.pin = CONFIG.DEFAULT_PIN; saveData(); showToast("পাসওয়ার্ড ডিফল্ট (1234) সেট হয়েছে", "success"); toggleForgotPassword(false); closeModal('auth-modal'); } else showToast("ভুল মাস্টার কোড!", "error"); }
+        function resetPassword() { const code = document.getElementById('reset-code').value; if(code === CONFIG.MASTER_RESET_CODE) { state.settings.pin = CONFIG.DEFAULT_PIN; 
+            saveSettingsToDB(); showToast("পাসওয়ার্ড ডিফল্ট (1234) সেট হয়েছে", "success"); toggleForgotPassword(false); closeModal('auth-modal'); } else showToast("ভুল মাস্টার কোড!", "error"); }
         function changePassword(e) {
             e.preventDefault();
             const current = document.getElementById('current-pin').value; const newPin = document.getElementById('new-pin').value;
             if(current !== state.settings.pin) return showToast("বর্তমান পাসওয়ার্ড ভুল!", "error");
-            if(newPin.length < 4) return showToast("পাসওয়ার্ড কমপক্ষে ৪ ডিজিট হতে হবে", "error");
-            state.settings.pin = newPin; saveData(); showToast("পাসওয়ার্ড পরিবর্তন সফল", "success"); e.target.reset();
+            if(newPin.length < 4) return showToast("পাসওয়ার্ড কমপক্ষে ৪ ৪ ডিজিট হতে হবে", "error");
+            state.settings.pin = newPin; 
+            saveSettingsToDB(); 
+            showToast("পাসওয়ার্ড পরিবর্তন সফল", "success"); 
+            e.target.reset();
         }
         function switchAdminTab(tab) {
             document.querySelectorAll('.admin-content').forEach(el => el.classList.add('hidden'));
@@ -906,13 +998,92 @@
             modal.classList.remove('hidden');
         }
         function editProduct(id) { openProductModal(id); }
-        function deleteProduct(id) { if(confirm("এই পণ্যটি মুছে ফেলতে চান?")) { state.products = state.products.filter(p => p.id !== id); saveData(); renderInventory(); renderProducts(); showToast("পণ্য মুছে ফেলা হয়েছে", "success"); } }
-        function handleProductSubmit(e) {
+
+        async function deleteProduct(id) { 
+            if(confirm("এই পণ্যটি মুছে ফেলতে চান?")) { 
+                try {
+                    const { error } = await supabase.from('products').delete().eq('id', id);
+                    if (error) throw error;
+                    
+                    // Update Local State
+                    state.products = state.products.filter(p => p.id !== id);
+                    
+                    renderInventory(); 
+                    renderProducts();
+                    showToast("পণ্য মুছে ফেলা হয়েছে", "success");
+                } catch (err) {
+                    showToast("ডিলেট মুছে ফেলতে সমস্য হয়নি", "error");
+                }
+            } 
+        }
+
+        async function handleProductSubmit(e) {
             e.preventDefault();
-            const id = document.getElementById('prod-id').value; const name = document.getElementById('prod-name').value; const buy = parseFloat(document.getElementById('prod-buy').value); const sell = parseFloat(document.getElementById('prod-sell').value); const stock = parseInt(document.getElementById('prod-stock').value); const loc = document.getElementById('prod-loc').value;
-            if (id) { const p = state.products.find(x => x.id == id); Object.assign(p, { name, buyPrice: buy, sellPrice: sell, stock, location: loc }); showToast("আপডেট সফল হয়েছে", "success"); }
-            else { const newId = Date.now(); state.products.push({ id: newId, name, buyPrice: buy, sellPrice: sell, stock, location: loc }); showToast("পণ্য যুক্ত হয়েছে", "success"); }
-            saveData(); closeModal('product-modal'); renderInventory(); renderProducts();
+            const id = document.getElementById('prod-id').value; 
+            const name = document.getElementById('prod-name').value; 
+            const buy = parseFloat(document.getElementById('prod-buy').value); 
+            const sell = parseFloat(document.getElementById('prod-sell').value); 
+            const stock = parseInt(document.getElementById('prod-stock').value); 
+            const loc = document.getElementById('prod-loc').value;
+
+            try {
+                if (id) {
+                    // Update
+                    const { data, error } = await supabase
+                        .from('products')
+                        .update({ 
+                            id: id, 
+                            name, buyPrice: buy, sellPrice: sell, stock, location: loc 
+                        })
+                        .eq('id', id)
+                        .select();
+                    
+                    if (error) throw error;
+                    
+                    // Update local state with returned data
+                    const idx = state.products.findIndex(p => p.id == id);
+                    if (idx !== -1) {
+                        state.products[idx] = data;
+                    }
+                    showToast("আপডেট সফল হয়েছে", "success");
+                } else {
+                    // Insert
+                    const { data, error } = await supabase
+                        .from('products')
+                        .insert([{ name, buyPrice: buy, sellPrice: sell, stock, location: loc }])
+                        .select();
+                    
+                    if (error) throw error;
+                    
+                    state.products.push(data[0]);
+                    showToast("পণ্য যুক্ত হয়েছে", "success");
+                }
+                
+                closeModal('product-modal'); 
+                renderInventory(); 
+                renderProducts();
+            } catch (err) {
+                console.error(err);
+                showToast("সেভ করতে সমস্য হয়নি", "error");
+            }
+        }
+
+        async function saveSettingsToDB() {
+            try {
+                const { error } = await supabase
+                    .from('settings')
+                    .upsert({
+                        id: 1, // Fixed ID 1 for settings
+                        shopName: state.settings.shopName,
+                        proprietor: state.settings.proprietor,
+                        mobile: state.settings.mobile,
+                        pin: state.settings.pin
+                    });
+                
+                if (error) throw error;
+            } catch (err) {
+                console.error("Error saving settings:", err);
+            }
         }
 
         function saveSettings(e) {
@@ -920,7 +1091,9 @@
             state.settings.shopName = document.getElementById('setting-shop-name').value;
             state.settings.proprietor = document.getElementById('setting-proprietor').value;
             state.settings.mobile = document.getElementById('setting-mobile').value;
-            saveData(); updateSettingsUI(); showToast("সেটিংস সেভ হয়েছে", "success");
+            saveSettingsToDB().then(() => {
+                updateSettingsUI(); showToast("সেটিংস সেভ হয়েছে", "success");
+            });
         }
 
         function updateSettingsUI() {
@@ -936,7 +1109,6 @@
             const panel = document.getElementById('cart-panel'); 
             const icon = document.getElementById('mobile-cart-icon'); 
             panel.classList.toggle('translate-y-full'); 
-            // Rotate icon 180deg based on cart visibility
             if (panel.classList.contains('translate-y-full')) {
                 icon.style.transform = 'rotate(0deg)';
             } else {
@@ -952,14 +1124,14 @@
             
             const div = document.createElement('div');
             const color = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-red-500' : 'bg-slate-800');
-            // Compact styling for mobile
             div.className = `${color} text-white px-4 py-2 rounded-full shadow-lg text-xs md:text-sm font-medium fade-in text-center`;
             div.innerText = msg; 
             container.appendChild(div);
             setTimeout(() => div.remove(), 3000);
         }
 
-        init();
+        // Start the app
+        syncData();
     </script>
 </body>
 </html>
