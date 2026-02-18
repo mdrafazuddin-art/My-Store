@@ -2,8 +2,8 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>গ্রোসারি পস সিস্টেম - আপডেটেড ফিক্সড</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>গ্রোসারি পস সিস্টেম - মোবাইল অপ্টিমাইজড</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,29 +17,39 @@
     <style>
         body {
             font-family: 'Hind Siliguri', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
-        /* Input Number Arrows Remove for cleaner look (Optional) */
+        /* Input Number Arrows Remove */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
+            -webkit-appearance: none; margin: 0; 
         }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
+        input[type=number] { -moz-appearance: textfield; }
 
         /* ==========================================
-           ROBUST PRINT STYLES (FIXED BLANK PAGE ISSUE)
+           IMPROVED PRINT STYLES (THERMAL PRINTER READY)
            ========================================== */
         @media print {
+            @page {
+                size: 80mm auto; /* Standard Thermal Printer Width */
+                margin: 0;
+            }
+            body { 
+                background: white; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+            }
+            
+            /* Hide UI Elements */
             body > * { display: none !important; }
             .no-print { display: none !important; }
 
+            /* Show Memo Only */
             body.printing-memo #memo-modal {
                 display: block !important;
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -50,34 +60,38 @@
                 max-width: 100% !important; height: auto !important; border-radius: 0 !important;
                 margin: 0 !important; display: block !important;
             }
-            body.printing-memo #memo-modal > div > div:first-child { display: none !important; }
+            body.printing-memo #memo-modal > div > div:first-child { display: none !important; } /* Hide Modal Header */
             body.printing-memo #memo-print-area {
                 display: block !important; position: relative; width: 100%;
                 color: black !important; background: white !important; border: none !important;
-                padding: 0 !important; overflow: visible !important;
+                padding: 10px !important; overflow: visible !important; font-size: 12px;
             }
+
+            /* Show Report Only */
             body.printing-report #report-print-container {
                 display: block !important; position: absolute; top: 0; left: 0; width: 100%;
                 background: white !important; color: black !important; z-index: 9999;
-                padding: 20px !important; margin: 0 !important; height: auto !important;
+                padding: 10px !important; margin: 0 !important; height: auto !important;
                 overflow: visible !important; border: none !important; box-shadow: none !important;
+                font-size: 12px;
             }
+
+            /* Force Text Colors */
             body.printing-report #report-print-container *, 
             body.printing-memo #memo-print-area * {
                 color: #000 !important; border-color: #000 !important;
                 text-shadow: none !important; box-shadow: none !important;
             }
-            body.printing-report #report-print-container th, 
-            body.printing-report #report-print-container .bg-slate-200,
-            body.printing-memo #memo-print-area th {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                background-color: #f3f4f6 !important; 
-            }
         }
 
+        /* Smooth Transitions */
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Bottom Sheet Shadow */
+        .bottom-sheet-shadow {
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        }
     </style>
     
     <script>
@@ -132,18 +146,18 @@
 
     <div id="app" class="flex flex-col h-full w-full relative">
         
-        <!-- HEADER -->
-        <header class="bg-emerald-700 text-white shadow-lg z-20 shrink-0 cursor-pointer select-none no-print" onclick="goHome()">
-            <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-shop text-2xl text-emerald-300"></i>
+        <!-- HEADER (Compact on Mobile) -->
+        <header class="bg-emerald-700 text-white shadow-md z-20 shrink-0 cursor-pointer select-none no-print" onclick="goHome()">
+            <div class="max-w-7xl mx-auto px-3 h-14 md:h-16 flex items-center justify-between">
+                <div class="flex items-center gap-2 md:gap-3">
+                    <i class="fa-solid fa-shop text-xl md:text-2xl text-emerald-300"></i>
                     <div>
-                        <h1 id="shop-name-header" class="font-bold text-xl leading-tight">আপনার দোকানের নাম</h1>
-                        <p id="shop-prop-header" class="text-xs text-emerald-200 hidden sm:block">প্রোপাইটর: নাম লিখুন</p>
+                        <h1 id="shop-name-header" class="font-bold text-lg md:text-xl leading-tight truncate max-w-[150px] md:max-w-none">আপনার দোকান</h1>
+                        <p id="shop-prop-header" class="text-[10px] md:text-xs text-emerald-200 hidden sm:block">প্রোপাইটর: নাম লিখুন</p>
                     </div>
                 </div>
-                <button onclick="event.stopPropagation(); toggleAdminAuth()" class="p-2 rounded-full hover:bg-emerald-800 transition-colors" title="সেটিংস">
-                    <i class="fa-solid fa-gear text-xl"></i>
+                <button onclick="event.stopPropagation(); toggleAdminAuth()" class="p-2 rounded-full hover:bg-emerald-800 transition-colors active:scale-95" title="সেটিংস">
+                    <i class="fa-solid fa-gear text-lg md:text-xl"></i>
                 </button>
             </div>
         </header>
@@ -153,29 +167,55 @@
             
             <!-- WORKER MODE -->
             <div id="worker-view" class="flex flex-col md:flex-row w-full h-full">
-                <div class="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden">
-                    <div class="p-4 bg-white shadow-sm z-10">
+                
+                <!-- Product Grid Section -->
+                <div class="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden relative">
+                    <!-- Search Bar -->
+                    <div class="p-3 bg-white shadow-sm z-10 shrink-0">
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-magnifying-glass"></i></span>
                             <input type="text" id="product-search" placeholder="পণ্য খুঁজুন..." 
-                                class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700">
+                                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm md:text-base text-slate-700 shadow-sm">
                         </div>
                     </div>
-                    <div id="product-grid" class="flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 content-start min-h-[500px] pb-32 md:pb-10"></div>
+
+                    <!-- Grid: 2 cols on mobile, 4 on PC -->
+                    <div id="product-grid" class="flex-1 overflow-y-auto p-2 md:p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 content-start pb-32 md:pb-10"></div>
                 </div>
 
-                <!-- Cart Panel -->
-                <div id="cart-panel" class="w-full md:w-96 bg-white border-l border-slate-200 flex flex-col shadow-2xl z-30 fixed md:relative bottom-0 h-[40vh] md:h-full transform translate-y-full md:translate-y-0 transition-transform duration-300 rounded-t-2xl md:rounded-none">
-                    <div class="p-3 border-b border-slate-100 flex justify-between items-center bg-emerald-50 md:bg-white cursor-pointer md:cursor-default" onclick="toggleMobileCart()">
-                        <h2 class="font-bold text-lg text-emerald-800"><i class="fa-solid fa-list-ul mr-2"></i>বিক্রি তালিকা</h2>
-                        <i class="fa-solid fa-chevron-up md:hidden text-emerald-600" id="mobile-cart-icon"></i>
-                        <button onclick="clearCart(event)" class="text-xs text-red-500 hover:text-red-700 font-medium md:block hidden">মুছে ফেলুন</button>
+                <!-- Cart Panel (Bottom Sheet on Mobile, Sidebar on Desktop) -->
+                <div id="cart-panel" class="w-full md:w-96 bg-white border-l border-slate-200 flex flex-col shadow-2xl z-30 fixed md:relative bottom-0 h-[45vh] md:h-full transform translate-y-full md:translate-y-0 transition-transform duration-300 ease-out rounded-t-2xl md:rounded-none bottom-sheet-shadow">
+                    
+                    <!-- Mobile Handle (Visible only on mobile) -->
+                    <div class="md:hidden w-full flex justify-center pt-2 pb-1 cursor-pointer" onclick="toggleMobileCart()">
+                        <div class="w-12 h-1.5 bg-slate-300 rounded-full"></div>
                     </div>
-                    <div id="cart-items" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
-                    <div class="p-3 bg-white border-t border-slate-200 space-y-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                        <div class="flex justify-between items-center text-sm font-medium"><span class="text-slate-600">মোট পণ্য:</span><span id="cart-count-badge">0 টি</span></div>
-                        <div class="flex justify-between items-center text-2xl font-bold text-slate-800"><span>মোট টাকা</span><span id="cart-total" class="text-emerald-600">৳ ০</span></div>
-                        <button onclick="handleCheckout()" id="checkout-btn" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 text-lg">চালান তৈরি করুন</button>
+
+                    <!-- Cart Header -->
+                    <div class="px-3 py-2 md:p-4 border-b border-slate-100 flex justify-between items-center bg-emerald-50 md:bg-white">
+                        <div class="flex items-center gap-2 cursor-pointer md:cursor-default" onclick="toggleMobileCart()">
+                            <h2 class="font-bold text-base md:text-lg text-emerald-800"><i class="fa-solid fa-list-ul mr-1 md:mr-2"></i>বিক্রি তালিকা</h2>
+                            <i class="fa-solid fa-chevron-up md:hidden text-emerald-600" id="mobile-cart-icon"></i>
+                        </div>
+                        <button onclick="clearCart(event)" class="text-xs md:text-sm text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded hover:bg-red-50 transition">মুছুন</button>
+                    </div>
+
+                    <!-- Cart Items (Scrollable) -->
+                    <div id="cart-items" class="flex-1 overflow-y-auto p-2 md:p-3 space-y-2"></div>
+
+                    <!-- Cart Footer (Totals & Checkout) -->
+                    <div class="p-3 bg-white border-t border-slate-200 space-y-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0">
+                        <div class="flex justify-between items-center text-xs md:text-sm font-medium text-slate-600">
+                            <span>মোট পণ্য:</span>
+                            <span id="cart-count-badge" class="bg-slate-100 px-2 py-0.5 rounded-full">0 টি</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xl md:text-2xl font-bold text-slate-800">
+                            <span>মোট</span>
+                            <span id="cart-total" class="text-emerald-600">৳ ০</span>
+                        </div>
+                        <button onclick="handleCheckout()" id="checkout-btn" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 md:py-4 rounded-xl shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 text-base md:text-lg mt-2">
+                            চালান তৈরি করুন
+                        </button>
                     </div>
                 </div>
             </div>
@@ -198,17 +238,19 @@
                 </div>
 
                 <!-- Admin Content -->
-                <div class="flex-1 overflow-y-auto p-4 md:p-8">
+                <div class="flex-1 overflow-y-auto p-3 md:p-8">
                     
                     <!-- Tab: Inventory -->
                     <div id="tab-inventory" class="admin-content space-y-4">
-                        <div class="flex justify-between items-center flex-wrap gap-2">
-                            <h2 class="text-2xl font-bold text-slate-800">পণ্য ইনভেন্টরি</h2>
-                            <button onclick="openProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition text-sm md:text-base"><i class="fa-solid fa-plus mr-2"></i> নতুন পণ্য</button>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">পণ্য ইনভেনটরি</h2>
+                            <button onclick="openProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition text-sm"><i class="fa-solid fa-plus mr-2"></i> নতুন পণ্য</button>
                         </div>
+                        
+                        <!-- Table Container for Mobile Scroll -->
                         <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
                             <div class="overflow-x-auto">
-                                <table class="w-full text-left text-sm text-slate-600">
+                                <table class="w-full text-left text-sm text-slate-600 min-w-[600px]"> <!-- min-w forces scroll on mobile -->
                                     <thead class="bg-slate-50 text-slate-700 uppercase font-semibold">
                                         <tr>
                                             <th class="px-4 py-3">পণ্যের নাম</th>
@@ -227,17 +269,17 @@
 
                     <!-- Tab: Reports -->
                     <div id="tab-reports" class="admin-content hidden space-y-6">
-                        <div class="flex justify-between items-center flex-wrap gap-4 no-print">
-                            <h2 class="text-2xl font-bold text-slate-800">বিক্রয় রিপোর্ট</h2>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">বিক্রয় রিপোর্ট</h2>
                             <button onclick="printSalesReport()" class="bg-slate-800 text-white px-4 py-2 rounded-lg shadow hover:bg-slate-900 transition flex items-center gap-2">
-                                <i class="fa-solid fa-print"></i> রিপোর্ট প্রিন্ট করুন
+                                <i class="fa-solid fa-print"></i> রিপোর্ট প্রিন্ট
                             </button>
                         </div>
                         
                         <!-- Filters -->
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 no-print">
+                        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 no-print">
                             <h3 class="font-bold text-lg text-slate-700 border-b pb-2">ফিল্টার করুন</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">নির্দিষ্ট তারিখ</label>
                                     <input type="date" id="report-date" oninput="generateReport('date')" onchange="generateReport('date')" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
@@ -247,9 +289,8 @@
                                     <input type="month" id="report-month" oninput="generateReport('month')" onchange="generateReport('month')" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between mt-2">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 gap-2">
                                 <button onclick="clearReportFilters()" class="text-blue-600 text-sm hover:underline">ফিল্টার মুছে ফেলুন</button>
-                                <!-- DELETE HISTORY BUTTON ADDED HERE -->
                                 <button onclick="deleteHistoryBasedOnFilter()" class="text-red-600 text-sm font-medium hover:text-red-800 hover:underline flex items-center gap-1">
                                     <i class="fa-solid fa-trash-can"></i> ইতিহাস মুছে ফেলুন
                                 </button>
@@ -257,17 +298,17 @@
                         </div>
 
                         <!-- Summary Cards -->
-                        <div id="report-summary-cards" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="bg-blue-50 p-6 rounded-xl border border-blue-100"><p class="text-sm text-blue-600 mb-1">মোট বিক্রয়</p><p id="report-total-sales" class="text-2xl font-bold text-blue-800">৳ ০</p></div>
-                            <div class="bg-orange-50 p-6 rounded-xl border border-orange-100"><p class="text-sm text-orange-600 mb-1">মোট খরচ</p><p id="report-total-cost" class="text-2xl font-bold text-orange-800">৳ ০</p></div>
-                            <div class="bg-emerald-50 p-6 rounded-xl border border-emerald-100"><p class="text-sm text-emerald-600 mb-1">মোট লাভ</p><p id="report-profit" class="text-2xl font-bold text-emerald-800">৳ ০</p></div>
+                        <div id="report-summary-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-100"><p class="text-sm text-blue-600 mb-1">মোট বিক্রয়</p><p id="report-total-sales" class="text-xl md:text-2xl font-bold text-blue-800">৳ ০</p></div>
+                            <div class="bg-orange-50 p-4 md:p-6 rounded-xl border border-orange-100"><p class="text-sm text-orange-600 mb-1">মোট খরচ</p><p id="report-total-cost" class="text-xl md:text-2xl font-bold text-orange-800">৳ ০</p></div>
+                            <div class="bg-emerald-50 p-4 md:p-6 rounded-xl border border-emerald-100"><p class="text-sm text-emerald-600 mb-1">মোট লাভ</p><p id="report-profit" class="text-xl md:text-2xl font-bold text-emerald-800">৳ ০</p></div>
                         </div>
 
                         <!-- Detailed Sales Table -->
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div class="p-4 border-b border-slate-200 bg-slate-50 font-bold text-slate-700">বিক্রয়ের বিস্তারিত তালিকা</div>
-                            <div class="overflow-x-auto max-h-96">
-                                <table class="w-full text-left text-sm text-slate-600">
+                            <div class="overflow-x-auto max-h-80">
+                                <table class="w-full text-left text-sm text-slate-600 min-w-[500px]">
                                     <thead class="bg-slate-100 text-slate-700 sticky top-0">
                                         <tr>
                                             <th class="px-4 py-2">পণ্যের নাম</th>
@@ -284,9 +325,9 @@
 
                     <!-- Tab: Settings -->
                     <div id="tab-settings" class="admin-content hidden space-y-6">
-                        <h2 class="text-2xl font-bold text-slate-800">দোকানের সেটিংস</h2>
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">দোকানের সেটিংস</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
                                 <h3 class="font-bold text-lg mb-4 text-emerald-700">দোকানের তথ্য</h3>
                                 <form id="settings-form" onsubmit="saveSettings(event)" class="space-y-4">
                                     <div><label class="block text-sm font-medium text-slate-700 mb-1">দোকানের নাম</label><input type="text" id="setting-shop-name" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none"></div>
@@ -295,7 +336,7 @@
                                     <button type="submit" class="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition">সেভ করুন</button>
                                 </form>
                             </div>
-                            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
                                 <h3 class="font-bold text-lg mb-4 text-red-700">নিরাপত্তা</h3>
                                 <form onsubmit="changePassword(event)" class="space-y-4">
                                     <div><label class="block text-sm font-medium text-slate-700 mb-1">বর্তমান পাসওয়ার্ড</label><input type="password" id="current-pin" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-red-500 outline-none"></div>
@@ -312,13 +353,13 @@
 
     <!-- MODALS -->
     <div id="auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm no-print">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-80 relative">
-            <button onclick="closeModal('auth-modal')" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-80 relative mx-4">
+            <button onclick="closeModal('auth-modal')" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             <div id="login-view">
                 <h3 class="text-xl font-bold text-center mb-4 text-slate-800">অ্যাডমিন লগইন</h3>
                 <p class="text-sm text-slate-500 text-center mb-4">প্যানেলে ঢোকার জন্য পাসওয়ার্ড দিন</p>
                 <input type="password" id="auth-pin" class="w-full text-center text-3xl tracking-[0.5em] mb-4 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="•••••">
-                <button onclick="verifyAdmin()" class="w-full py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">লগইন</button>
+                <button onclick="verifyAdmin()" class="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium text-lg">লগইন</button>
                 <div class="mt-4 text-center"><button onclick="toggleForgotPassword(true)" class="text-sm text-blue-600 hover:underline">পাসওয়ার্ড ভুলে গেছেন?</button></div>
             </div>
             <div id="reset-view" class="hidden">
@@ -331,7 +372,7 @@
     </div>
 
     <div id="product-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm no-print">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <h3 id="modal-title" class="text-xl font-bold mb-4 text-slate-800">পণ্য যুক্ত করুন</h3>
             <form id="product-form" onsubmit="handleProductSubmit(event)" class="space-y-3">
                 <input type="hidden" id="prod-id">
@@ -344,77 +385,86 @@
                     <div><label class="block text-xs font-bold text-slate-500 mb-1">স্টক পরিমাণ</label><input type="number" id="prod-stock" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
                     <div><label class="block text-xs font-bold text-slate-500 mb-1">অবস্থান</label><input type="text" id="prod-loc" placeholder="যেমন: তাক ১" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
                 </div>
-                <div class="flex justify-end gap-3 pt-2"><button type="button" onclick="closeModal('product-modal')" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">বাতিল</button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">সেভ করুন</button></div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeModal('product-modal')" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-300">বাতিল</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">সেভ করুন</button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- Memo Modal -->
+    <!-- Memo Modal (Thermal Printer Friendly) -->
     <div id="memo-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60 backdrop-blur-sm no-print">
-        <div class="bg-white w-full max-w-sm mx-4 h-[90vh] md:h-auto md:max-h-[90vh] rounded-lg shadow-2xl flex flex-col overflow-hidden">
-            <div class="bg-slate-100 p-3 border-b flex justify-between items-center shrink-0">
+        <div class="bg-white w-full max-w-[80mm] mx-auto h-[95vh] md:h-auto md:max-h-[90vh] rounded-t-2xl md:rounded-lg shadow-2xl flex flex-col overflow-hidden">
+            <div class="bg-slate-100 p-3 border-b flex justify-between items-center shrink-0 no-print">
                 <h3 class="font-bold text-slate-700">প্রিভিউ চালান</h3>
                 <div class="flex gap-2">
-                    <button onclick="printMemo()" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"><i class="fa-solid fa-print"></i> প্রিন্ট করুন</button>
-                    <button onclick="closeModal('memo-modal')" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"><i class="fa-solid fa-xmark"></i></button>
+                    <button onclick="printMemo()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 flex items-center gap-1"><i class="fa-solid fa-print"></i> প্রিন্ট</button>
+                    <button onclick="closeModal('memo-modal')" class="bg-red-500 text-white px-3 py-1.5 rounded text-sm hover:bg-red-600"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
             
-            <div id="memo-print-area" class="flex-1 overflow-y-auto p-6 bg-white text-black font-sans border-t-4 border-emerald-600">
-                <div class="text-center mb-4 border-b-2 border-dashed border-slate-400 pb-4">
-                    <h1 id="memo-shop-name" class="text-2xl font-bold uppercase tracking-wide">দোকানের নাম</h1>
-                    <p id="memo-prop" class="text-sm mt-1">প্রোপাইটর: নাম</p>
-                    <p id="memo-mobile" class="text-sm">মোবাইল: ০১৭১১১১১১১</p>
-                    <p class="text-xs mt-2 font-bold" id="memo-date">Date: </p>
-                    <p class="text-xs">Invoice #: <span id="memo-invoice">0000</span></p>
+            <div id="memo-print-area" class="flex-1 overflow-y-auto p-4 bg-white text-black font-sans text-sm">
+                <div class="text-center mb-4 border-b-2 border-dashed border-slate-800 pb-4">
+                    <h1 id="memo-shop-name" class="text-lg font-bold uppercase tracking-wide leading-tight mb-1">দোকানের নাম</h1>
+                    <p id="memo-prop" class="text-xs">প্রোপাইটর: নাম</p>
+                    <p id="memo-mobile" class="text-xs">মোবাইল: ০১৭১১১১১১১</p>
+                    <p class="text-[10px] mt-2 font-bold" id="memo-date">Date: </p>
+                    <p class="text-[10px]">Invoice #: <span id="memo-invoice">0000</span></p>
                 </div>
-                <table class="w-full text-sm mb-4 border-collapse">
+                <table class="w-full text-xs mb-4 border-collapse">
                     <thead><tr class="border-b border-slate-800 font-bold"><td class="py-1 text-left w-1/2">বিবরণ</td><td class="py-1 text-center w-1/6">পরিমাণ</td><td class="py-1 text-right w-1/6">দাম</td><td class="py-1 text-right w-1/6">টাকা</td></tr></thead>
                     <tbody id="memo-items"></tbody>
                 </table>
-                <div class="border-t-2 border-dashed border-slate-800 pt-2"><table class="w-full text-sm"><tr><td class="text-left py-1 font-bold text-lg">সর্বমোট:</td><td class="text-right font-bold text-xl" id="memo-total">৳ ০</td></tr></table></div>
-                <div class="mt-8 pt-4 border-t border-dashed border-slate-300 text-center text-xs"><p class="font-bold text-lg mb-1">ধন্যবাদ, আবার আসবেন!</p></div>
+                <div class="border-t-2 border-dashed border-slate-800 pt-2">
+                    <table class="w-full text-xs">
+                        <tr><td class="text-left py-1 font-bold text-lg">সর্বমোট:</td><td class="text-right font-bold text-xl" id="memo-total">৳ ০</td></tr>
+                    </table>
+                </div>
+                <div class="mt-6 pt-2 border-t border-dashed border-slate-300 text-center text-[10px]">
+                    <p class="font-bold text-base mb-1">ধন্যবাদ, আবার আসবেন!</p>
+                    <p class="text-slate-500">Powered by Grocery POS</p>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- PRINT CONTAINER FOR REPORTS -->
-    <div id="report-print-container" class="hidden bg-white text-black p-8 font-sans">
+    <div id="report-print-container" class="hidden bg-white text-black p-4 font-sans max-w-[210mm] mx-auto">
         <div class="text-center border-b-2 border-black pb-4 mb-6">
             <h1 id="print-rpt-shop-name" class="text-2xl font-bold uppercase tracking-wide mb-1"></h1>
             <p id="print-rpt-prop" class="text-sm font-semibold mb-1"></p>
             <p id="print-rpt-mobile" class="text-sm"></p>
         </div>
         <div class="mb-6 text-center font-bold text-lg">রিপোর্ট পিরিয়ড: <span id="print-rpt-period"></span></div>
-        <div class="grid grid-cols-3 gap-4 mb-8 border border-black p-4">
-            <div class="text-center border-r border-black last:border-0">
-                <p class="text-xs font-bold uppercase">মোট বিক্রয়</p>
-                <p id="print-rpt-total-sales" class="text-lg font-bold mt-1"></p>
+        <div class="grid grid-cols-3 gap-2 mb-6 border border-black p-2 text-center">
+            <div class="border-r border-black">
+                <p class="text-[10px] font-bold uppercase">মোট বিক্রয়</p>
+                <p id="print-rpt-total-sales" class="text-base font-bold mt-1"></p>
             </div>
-            <div class="text-center border-r border-black last:border-0">
-                <p class="text-xs font-bold uppercase">মোট খরচ</p>
-                <p id="print-rpt-total-cost" class="text-lg font-bold mt-1"></p>
+            <div class="border-r border-black">
+                <p class="text-[10px] font-bold uppercase">মোট খরচ</p>
+                <p id="print-rpt-total-cost" class="text-base font-bold mt-1"></p>
             </div>
-            <div class="text-center">
-                <p class="text-xs font-bold uppercase">মোট লাভ</p>
-                <p id="print-rpt-profit" class="text-lg font-bold mt-1"></p>
+            <div>
+                <p class="text-[10px] font-bold uppercase">মোট লাভ</p>
+                <p id="print-rpt-profit" class="text-base font-bold mt-1"></p>
             </div>
         </div>
         <div class="mb-2 font-bold text-lg underline">বিক্রয়ের বিস্তারিত তালিকা</div>
-        <table class="w-full text-sm border-collapse border border-black mb-6">
+        <table class="w-full text-xs border-collapse border border-black mb-6">
             <thead>
                 <tr class="bg-slate-200 font-bold border-b border-black">
-                    <th class="border border-black p-2 text-left">পণ্যের নাম</th>
-                    <th class="border border-black p-2 text-center">পরিমাণ</th>
-                    <th class="border border-black p-2 text-right">বিক্রয় মূল্য</th>
-                    <th class="border border-black p-2 text-right">সময়</th>
+                    <th class="border border-black p-1 text-left">পণ্যের নাম</th>
+                    <th class="border border-black p-1 text-center">পরিমাণ</th>
+                    <th class="border border-black p-1 text-right">বিক্রয় মূল্য</th>
+                    <th class="border border-black p-1 text-right">সময়</th>
                 </tr>
             </thead>
             <tbody id="print-rpt-table-body"></tbody>
         </table>
-        <div class="mt-12 pt-4 border-t border-black text-center text-sm">
+        <div class="mt-8 pt-2 border-t border-black text-center text-xs">
             <p>প্রিন্ট তারিখ: <span id="print-timestamp"></span></p>
-            <p class="text-slate-500 text-xs mt-1">Powered by Grocery POS System</p>
         </div>
     </div>
 
@@ -471,7 +521,6 @@
                 sale.items.forEach(item => {
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-50";
-                    // FIX: Added useGrouping: false
                     const timeStr = new Date(item.time).toLocaleTimeString('bn-BD', {hour: '2-digit', minute:'2-digit', useGrouping: false});
                     row.innerHTML = `<td class="px-4 py-2">${item.name}</td><td class="px-4 py-2 text-center">${item.qty}</td><td class="px-4 py-2 text-right">৳ ${(item.price * item.qty).toLocaleString()}</td><td class="px-4 py-2 text-right text-xs text-slate-500">${timeStr}</td>`;
                     tbody.appendChild(row);
@@ -485,12 +534,9 @@
             generateReport('all');
         }
 
-        // ==========================================
-        // NEW: DELETE HISTORY FUNCTION
-        // ==========================================
         function deleteHistoryBasedOnFilter() {
             const dateInput = document.getElementById('report-date').value;
-            const monthInput = document('report-month').value;
+            const monthInput = document.getElementById('report-month').value;
 
             if (!dateInput && !monthInput) {
                 showToast("ডাটা মুছে ফেলার জন্য প্রথমে একটি তারিখ বা মাস সিলেক্ট করুন।", "error");
@@ -498,11 +544,8 @@
             }
 
             let confirmMsg = "আপনি কি নিশ্চিত যে এই তারিখের সকল ডাটা মুছে ফেলতে চান?";
-            if (dateInput) {
-                confirmMsg += `\n(নির্দিষ্ট তারিখ: ${dateInput})`;
-            } else if (monthInput) {
-                confirmMsg += `\n(নির্দিষ্ট মাস: ${monthInput})`;
-            }
+            if (dateInput) confirmMsg += `\n(নির্দিষ্ট তারিখ: ${dateInput})`;
+            else if (monthInput) confirmMsg += `\n(নির্দিষ্ট মাস: ${monthInput})`;
 
             if (confirm(confirmMsg)) {
                 if (dateInput) {
@@ -519,7 +562,7 @@
         }
 
         // ==========================================
-        // PRINT FUNCTIONS (FIXED DATE COMMAS)
+        // PRINT FUNCTIONS
         // ==========================================
         function printSalesReport() {
             document.body.classList.add('printing-report');
@@ -542,10 +585,8 @@
             if (monthVal) {
                 const bnMonths = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
                 const [year, monthIndex] = monthVal.split('-');
-                // FIX: Added useGrouping: false
                 periodText = `মাস: ${bnMonths[parseInt(monthIndex) - 1]} ${parseInt(year).toLocaleString('bn-BD', {useGrouping: false})}`;
             } else if (dateVal) {
-                // FIX: Added useGrouping: false
                 periodText = `তারিখ: ${new Date(dateVal).toLocaleDateString('bn-BD', {useGrouping: false})}`;
             }
             document.getElementById('print-rpt-period').innerText = periodText;
@@ -556,14 +597,12 @@
             } else {
                 tempFilteredSales.forEach(sale => {
                     sale.items.forEach(item => {
-                        // FIX: Added useGrouping: false
                         const timeStr = new Date(item.time).toLocaleTimeString('bn-BD', {hour: '2-digit', minute:'2-digit', useGrouping: false});
-                        const row = `<tr><td class="border border-black p-2 text-left">${item.name}</td><td class="border border-black p-2 text-center">${item.qty}</td><td class="border border-black p-2 text-right">৳ ${(item.price * item.qty).toLocaleString()}</td><td class="border border-black p-2 text-right">${timeStr}</td></tr>`;
+                        const row = `<tr><td class="border border-black p-1 text-left">${item.name}</td><td class="border border-black p-1 text-center">${item.qty}</td><td class="border border-black p-1 text-right">৳ ${(item.price * item.qty).toLocaleString()}</td><td class="border border-black p-1 text-right">${timeStr}</td></tr>`;
                         printTableBody.innerHTML += row;
                     });
                 });
             }
-            // FIX: Added useGrouping: false
             document.getElementById('print-timestamp').innerText = new Date().toLocaleString('bn-BD', {useGrouping: false});
             window.print();
             setTimeout(() => { document.body.classList.remove('printing-report'); }, 1000);
@@ -571,7 +610,6 @@
 
         function printMemo() {
             const now = new Date();
-            // FIX: Added useGrouping: false
             const dateStr = now.toLocaleDateString('bn-BD', {useGrouping: false});
             const timeStr = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit', useGrouping: false });
             const memoDateEl = document.getElementById('memo-date');
@@ -583,7 +621,7 @@
         }
         
         // ==========================================
-        // CART & PRODUCT LOGIC (UPDATED)
+        // CART & PRODUCT LOGIC
         // ==========================================
         
         function goHome() {
@@ -614,8 +652,19 @@
             filtered.forEach(p => {
                 const isOutOfStock = p.stock <= 0;
                 const card = document.createElement('div');
-                card.className = `bg-white rounded-lg shadow-sm border ${isOutOfStock ? 'border-red-200 bg-red-50' : 'border-slate-200'} p-3 flex flex-col justify-between hover:shadow-md transition-shadow`;
-                card.innerHTML = `<div class="mb-2"><h3 class="font-bold text-slate-800 leading-tight text-sm md:text-base">${p.name}</h3><p class="text-xs text-slate-500 mt-1">${p.location}</p></div><div class="flex items-center justify-between mt-2"><span class="font-bold text-emerald-600 text-lg">৳ ${p.sellPrice}</span><span class="text-xs px-2 py-0.5 rounded-full ${isOutOfStock ? 'bg-red-200 text-red-700' : 'bg-slate-100 text-slate-600'}">স্টক: ${p.stock}</span></div><button onclick="addToCart(${p.id})" ${isOutOfStock ? 'disabled' : ''} class="mt-3 w-full py-2 rounded-lg font-medium text-sm transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white'}">${isOutOfStock ? 'স্টক নেই' : 'বিক্রি তালিকায় যোগ'}</button>`;
+                card.className = `bg-white rounded-lg shadow-sm border ${isOutOfStock ? 'border-red-200 bg-red-50' : 'border-slate-200'} p-2.5 flex flex-col justify-between hover:shadow-md transition-shadow h-full`;
+                card.innerHTML = `
+                    <div class="mb-2">
+                        <h3 class="font-bold text-slate-800 leading-tight text-sm md:text-base line-clamp-2">${p.name}</h3>
+                        <p class="text-[10px] md:text-xs text-slate-500 mt-1">${p.location}</p>
+                    </div>
+                    <div class="flex items-center justify-between mt-auto">
+                        <span class="font-bold text-emerald-600 text-base md:text-lg">৳ ${p.sellPrice}</span>
+                        <span class="text-[10px] md:text-xs px-1.5 py-0.5 rounded-full ${isOutOfStock ? 'bg-red-200 text-red-700' : 'bg-slate-100 text-slate-600'}">স্টক: ${p.stock}</span>
+                    </div>
+                    <button onclick="addToCart(${p.id})" ${isOutOfStock ? 'disabled' : ''} class="mt-3 w-full py-2 rounded-lg font-medium text-xs md:text-sm transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white active:scale-95'}">
+                        ${isOutOfStock ? 'স্টক নেই' : 'কার্টে যোগ'}
+                    </button>`;
                 grid.appendChild(card);
             });
         }
@@ -631,7 +680,7 @@
         }
 
         // ==========================================
-        // UPDATED CART RENDERING
+        // UPDATED CART RENDERING (TOUCH OPTIMIZED)
         // ==========================================
         function renderCart() {
             const container = document.getElementById('cart-items');
@@ -641,35 +690,37 @@
             container.innerHTML = "";
             let totalSell = 0; let totalItems = 0;
             if (state.cart.length === 0) {
-                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400"><i class="fa-solid fa-basket-shopping text-3xl opacity-30"></i><p class="text-sm mt-2">তালিকা খালি</p></div>`;
-                checkoutBtn.disabled = true; checkoutBtn.classList.add('opacity-50');
+                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400"><i class="fa-solid fa-basket-shopping text-3xl opacity-30 mb-2"></i><p class="text-sm">তালিকা খালি</p></div>`;
+                checkoutBtn.disabled = true; 
+                checkoutBtn.classList.add('opacity-50');
             } else {
-                checkoutBtn.disabled = false; checkoutBtn.classList.remove('opacity-50');
+                checkoutBtn.disabled = false; 
+                checkoutBtn.classList.remove('opacity-50');
                 state.cart.forEach(item => {
                     const product = state.products.find(p => p.id === item.id);
                     totalSell += product.sellPrice * item.qty; 
                     totalItems += item.qty;
                     
                     const div = document.createElement('div');
-                    div.className = "flex items-center justify-between bg-slate-50 p-2 rounded border border-slate-100";
+                    div.className = "flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-50 p-2 rounded border border-slate-100 gap-2";
                     
-                    // Input HTML Structure
+                    // Input HTML Structure (Larger buttons for touch)
                     const inputHtml = `
-                        <div class="flex items-center gap-1">
-                            <button onclick="updateQty(${item.id}, -1)" class="w-7 h-7 rounded bg-white border border-slate-300 text-slate-600 hover:bg-red-50 hover:text-red-500 flex items-center justify-center">-</button>
+                        <div class="flex items-center gap-1 w-full sm:w-auto justify-between sm:justify-start bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                            <button onclick="updateQty(${item.id}, -1)" class="w-9 h-9 rounded bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-600 flex items-center justify-center text-lg font-bold transition-colors">-</button>
                             <input type="number" 
                                 value="${item.qty}" 
                                 min="1" 
                                 max="${product.stock}" 
-                                class="w-14 h-8 text-center font-bold text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500" 
+                                class="w-10 md:w-14 h-8 text-center font-bold text-base bg-transparent focus:outline-none" 
                                 oninput="handleQtyInput(${item.id}, this)" 
                                 onblur="handleQtyBlur(${item.id}, this)"
                             >
-                            <button onclick="updateQty(${item.id}, 1)" class="w-7 h-7 rounded bg-white border border-slate-300 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 flex items-center justify-center">+</button>
+                            <button onclick="updateQty(${item.id}, 1)" class="w-9 h-9 rounded bg-slate-100 hover:bg-emerald-50 hover:text-emerald-600 text-slate-600 flex items-center justify-center text-lg font-bold transition-colors">+</button>
                         </div>
                     `;
 
-                    div.innerHTML = `<div class="flex-1 min-w-0"><p class="font-bold text-sm text-slate-800 truncate">${product.name}</p><p class="text-xs text-emerald-600">৳ ${product.sellPrice} x ${item.qty}</p></div>${inputHtml}`;
+                    div.innerHTML = `<div class="flex-1 min-w-0 pr-2"><p class="font-bold text-sm text-slate-800 truncate leading-tight">${product.name}</p><p class="text-xs text-emerald-600 mt-0.5">৳ ${product.sellPrice} x ${item.qty}</p></div>${inputHtml}`;
                     container.appendChild(div);
                 });
             }
@@ -677,7 +728,6 @@
             countEl.innerText = `${totalItems} টি`;
         }
 
-        // Button Click Update (Re-renders cart, losing input focus is acceptable here)
         function updateQty(id, change) {
             const item = state.cart.find(c => c.id === id);
             const product = state.products.find(p => p.id === id);
@@ -688,25 +738,16 @@
             renderCart();
         }
 
-        // ==========================================
-        // NEW INPUT LOGIC
-        // ==========================================
-
-        // 1. Handle Typing (Updates Total Price immediately without losing focus)
         function handleQtyInput(id, inputEl) {
             const item = state.cart.find(c => c.id === id);
             const val = parseInt(inputEl.value);
-            
             if (!item) return;
-            
-            // Only update if valid number and > 0
             if (!isNaN(val) && val > 0) {
                 item.qty = val;
-                updateCartTotals(); // Helper function to update footer totals
+                updateCartTotals();
             }
         }
 
-        // 2. Handle Blur (Validation: Empty, 0, or Stock Limit)
         function handleQtyBlur(id, inputEl) {
             const item = state.cart.find(c => c.id === id);
             const product = state.products.find(p => p.id === id);
@@ -715,17 +756,14 @@
             if (!item || !product) return;
 
             if (isNaN(val) || val <= 0) {
-                // If 0 or empty
                 if (val === 0) {
                     if (confirm("পরিমাণ ০ করা হয়েছে। আইটেমটি তালিকা থেকে সরাতে চান?")) {
                         state.cart = state.cart.filter(c => c.id !== id);
                     } else {
-                        // If cancelled, just renderCart to reset to previous value
                         renderCart();
                         return;
                     }
                 } else {
-                    // If empty, default to 1
                     item.qty = 1;
                 }
             } else if (val > product.stock) {
@@ -734,12 +772,9 @@
             } else {
                 item.qty = val;
             }
-            
-            // Full re-render to sync inputs and display perfectly
             renderCart();
         }
 
-        // 3. Helper to update totals in footer without full re-render
         function updateCartTotals() {
             let total = 0;
             let count = 0;
@@ -782,11 +817,10 @@
             document.getElementById('memo-prop').innerText = `প্রোপাইটর: ${state.settings.proprietor}`;
             document.getElementById('memo-mobile').innerText = `মোবাইল: ${state.settings.mobile}`;
             const now = new Date();
-            // FIX: Added useGrouping: false
             document.getElementById('memo-date').innerText = `তারিখ: ${now.toLocaleDateString('bn-BD', {useGrouping: false})} ${now.toLocaleTimeString('bn-BD', {hour: '2-digit', minute:'2-digit', useGrouping: false})}`;
             document.getElementById('memo-invoice').innerText = Math.floor(Math.random() * 9000) + 1000;
             document.getElementById('memo-total').innerText = `৳ ${total.toLocaleString()}`;
-            list.innerHTML = items.map(item => `<tr class="border-b border-dashed border-slate-300"><td class="py-1 pl-1 align-top">${item.name}</td><td class="py-1 text-center align-top">${item.qty}</td><td class="py-1 text-right align-top">${item.rate}</td><td class="py-1 pr-1 text-right align-top font-medium">${item.total}</td></tr>`).join('');
+            list.innerHTML = items.map(item => `<tr class="border-b border-dashed border-slate-300"><td class="py-1 pl-1 align-top leading-tight">${item.name}</td><td class="py-1 text-center align-top">${item.qty}</td><td class="py-1 text-right align-top">${item.rate}</td><td class="py-1 pr-1 text-right align-top font-medium">${item.total}</td></tr>`).join('');
             modal.classList.remove('hidden');
         }
 
@@ -822,7 +856,7 @@
             const tbody = document.getElementById('inventory-table-body'); tbody.innerHTML = "";
             state.products.forEach(p => {
                 const tr = document.createElement('tr'); tr.className = "border-b hover:bg-slate-50";
-                tr.innerHTML = `<td class="px-4 py-3 font-medium">${p.name}</td><td class="px-4 py-3">৳ ${p.buyPrice}</td><td class="px-4 py-3 text-emerald-600 font-bold">৳ ${p.sellPrice}</td><td class="px-4 py-3">${p.stock}</td><td class="px-4 py-3 text-sm text-slate-500">${p.location}</td><td class="px-4 py-3 text-right"><button onclick="editProduct(${p.id})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button></td>`;
+                tr.innerHTML = `<td class="px-4 py-3 font-medium whitespace-nowrap">${p.name}</td><td class="px-4 py-3">৳ ${p.buyPrice}</td><td class="px-4 py-3 text-emerald-600 font-bold">৳ ${p.sellPrice}</td><td class="px-4 py-3">${p.stock}</td><td class="px-4 py-3 text-sm text-slate-500">${p.location}</td><td class="px-4 py-3 text-right"><button onclick="editProduct(${p.id})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button></td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -861,11 +895,16 @@
         }
 
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function toggleMobileCart() { const panel = document.getElementById('cart-panel'); const icon = document.getElementById('mobile-cart-icon'); panel.classList.toggle('translate-y-full'); icon.classList.toggle('rotate-180'); }
+        function toggleMobileCart() { 
+            const panel = document.getElementById('cart-panel'); 
+            const icon = document.getElementById('mobile-cart-icon'); 
+            panel.classList.toggle('translate-y-full'); 
+            icon.classList.toggle('rotate-180'); 
+        }
         function showToast(msg, type = 'info') {
             const container = document.getElementById('toast-container'); const div = document.createElement('div');
             const color = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-red-500' : 'bg-slate-800');
-            div.className = `${color} text-white px-4 py-3 rounded shadow-lg text-sm font-medium fade-in`;
+            div.className = `${color} text-white px-4 py-3 rounded shadow-lg text-sm font-medium fade-in max-w-[80%]`;
             div.innerText = msg; container.appendChild(div);
             setTimeout(() => div.remove(), 3000);
         }
