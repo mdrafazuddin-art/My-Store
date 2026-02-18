@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>গ্রোসারি পস সিস্টেম - মোবাইল অপ্টিমাইজড</title>
+    <title>মোবাইল অপ্টিমাইজড</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -224,16 +224,15 @@
             </div>
 
             <!-- ADMIN MODE -->
-            <!-- FIX: Added h-full and overflow-hidden to strictly manage layout height -->
+            <!-- FIX: h-full and overflow-hidden are critical for mobile scrolling context -->
             <div id="admin-view" class="hidden w-full h-full bg-slate-100 flex flex-col md:flex-row overflow-hidden">
                 
                 <!-- Sidebar -->
-                <!-- FIX: h-auto on mobile (fits content), h-full on desktop (full height sidebar) -->
+                <!-- FIX: h-auto on mobile (collapses to content), h-full on desktop -->
                 <div class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 h-auto md:h-full no-print z-10">
                     <div class="p-4 border-b border-slate-700"><p class="text-xs uppercase tracking-wider font-semibold text-slate-500">অ্যাডমিন প্যানেল</p><h3 class="text-white font-bold mt-1">ম্যানেজমেন্ট</h3></div>
                     
                     <!-- Navigation -->
-                    <!-- FIX: flex-1 allows it to take available space. overflow-y-auto handles internal scrolling. -->
                     <nav class="flex-1 overflow-y-auto py-4 space-y-1">
                         <button onclick="switchAdminTab('inventory')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent active-tab"><i class="fa-solid fa-boxes-stacked w-6"></i> পণ্য তালিকা</button>
                         <button onclick="switchAdminTab('reports')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent"><i class="fa-solid fa-chart-line w-6"></i> বিক্রয় রিপোর্ট</button>
@@ -248,18 +247,18 @@
                 </div>
 
                 <!-- Admin Content -->
-                <!-- FIX: Added min-h-0. This is CRITICAL for flexbox scrolling. Without it, the container expands to fit content instead of scrolling. -->
-                <div class="flex-1 overflow-y-auto min-h-0 p-3 md:p-8">
+                <!-- FIX: min-h-0 is ESSENTIAL for flex children to scroll properly. flex-1 takes available space. -->
+                <div class="flex-1 overflow-y-auto min-h-0 p-2 md:p-8">
                     
                     <!-- Tab: Inventory -->
-                    <div id="tab-inventory" class="admin-content space-y-4">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">পণ্য ইনভেনটরি</h2>
+                    <div id="tab-inventory" class="admin-content space-y-2 md:space-y-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 md:gap-3">
+                            <!-- Reduced margin on mobile headers -->
+                            <h2 class="text-lg md:text-2xl font-bold text-slate-800">পণ্য ইনভেনটরি</h2>
                             <button onclick="openProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition text-sm"><i class="fa-solid fa-plus mr-2"></i> নতুন পণ্য</button>
                         </div>
                         
                         <!-- Table Container for Mobile Scroll -->
-                        <!-- FIX: overflow-x-auto on this div handles horizontal table scroll, while parent handles vertical -->
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-sm text-slate-600 min-w-[600px]"> <!-- min-w forces scroll on mobile -->
@@ -280,9 +279,9 @@
                     </div>
 
                     <!-- Tab: Reports -->
-                    <div id="tab-reports" class="admin-content hidden space-y-6">
+                    <div id="tab-reports" class="admin-content hidden space-y-4 md:space-y-6">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
-                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">বিক্রয় রিপোর্ট</h2>
+                            <h2 class="text-lg md:text-2xl font-bold text-slate-800">বিক্রয় রিপোর্ট</h2>
                             <button onclick="printSalesReport()" class="bg-slate-800 text-white px-4 py-2 rounded-lg shadow hover:bg-slate-900 transition flex items-center gap-2">
                                 <i class="fa-solid fa-print"></i> রিপোর্ট প্রিন্ট
                             </button>
@@ -336,8 +335,8 @@
                     </div>
 
                     <!-- Tab: Settings -->
-                    <div id="tab-settings" class="admin-content hidden space-y-6">
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">দোকানের সেটিংস</h2>
+                    <div id="tab-settings" class="admin-content hidden space-y-4 md:space-y-6">
+                        <h2 class="text-lg md:text-2xl font-bold text-slate-800">দোকানের সেটিংস</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
                                 <h3 class="font-bold text-lg mb-4 text-emerald-700">দোকানের তথ্য</h3>
