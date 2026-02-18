@@ -3,89 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>গ্রোসারি পস সিস্টেম - সুপাবেস</title>
+    <title>গ্রোসারি পস সিস্টেম - ডাটাবেস সংযোগ</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         body { font-family: 'Hind Siliguri', sans-serif; -webkit-tap-highlight-color: transparent; }
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        @media print {
+            @page { size: 80mm auto; margin: 0; }
+            body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body > * { display: none !important; }
+            .no-print { display: none !important; }
+            body.printing-memo #memo-modal { display: block !important; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white !important; z-index: 9999; overflow: visible; }
+            body.printing-memo #memo-modal > div { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; height: auto !important; border-radius: 0 !important; margin: 0 !important; display: block !important; }
+            body.printing-memo #memo-modal > div > div:first-child { display: none !important; } 
+            body.printing-memo #memo-print-area { display: block !important; position: relative; width: 100%; color: black !important; background: white !important; border: none !important; padding: 10px !important; overflow: visible !important; font-size: 12px; }
+            body.printing-report #report-print-container { display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white !important; color: black !important; z-index: 9999; padding: 10px !important; margin: 0 !important; height: auto !important; overflow: visible !important; border: none !important; box-shadow: none !important; font-size: 12px; }
+            body.printing-report #report-print-container *, body.printing-memo #memo-print-area * { color: #000 !important; border-color: #000 !important; text-shadow: none !important; box-shadow: none !important; }
+        }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .bottom-sheet-shadow { box-shadow: 0 -4px 20px rgba(0,0,0,0.15); }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden">
 
     <div id="app" class="flex flex-col h-full w-full relative">
         <!-- HEADER -->
-        <header class="bg-emerald-700 text-white shadow-md z-20 shrink-0 no-print">
+        <header class="bg-emerald-700 text-white shadow-md z-20 shrink-0 cursor-pointer select-none no-print" onclick="goHome()">
             <div class="max-w-7xl mx-auto px-3 h-14 md:h-16 flex items-center justify-between">
-                <div class="flex items-center gap-2 cursor-pointer" onclick="goHome()">
+                <div class="flex items-center gap-2 md:gap-3">
                     <i class="fa-solid fa-shop text-xl md:text-2xl text-emerald-300"></i>
                     <div>
-                        <h1 id="shop-name-header" class="font-bold text-lg md:text-xl leading-tight">আপনার দোকান</h1>
-                        <p id="shop-prop-header" class="text-[10px] md:text-xs text-emerald-200">প্রোপাইটর: লোড হচ্ছে...</p>
+                        <h1 id="shop-name-header" class="font-bold text-lg md:text-xl leading-tight truncate max-w-[150px]">আপনার দোকান</h1>
+                        <p id="shop-prop-header" class="text-[10px] md:text-xs text-emerald-200 hidden sm:block">প্রোপাইটর: লোড হচ্ছে...</p>
                     </div>
                 </div>
-                <button onclick="toggleAdminAuth()" class="p-2 rounded-full hover:bg-emerald-800 transition-colors">
+                <button onclick="event.stopPropagation(); toggleAdminAuth()" class="p-2 rounded-full hover:bg-emerald-800 transition-colors active:scale-95">
                     <i class="fa-solid fa-gear text-lg md:text-xl"></i>
                 </button>
             </div>
         </header>
 
+        <!-- MAIN CONTENT -->
         <main id="main-content" class="flex-1 flex overflow-hidden relative no-print">
-            <!-- WORKER VIEW -->
             <div id="worker-view" class="flex flex-col md:flex-row w-full h-full">
-                <div class="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden">
-                    <div class="p-3 bg-white shadow-sm z-10">
+                <!-- Product Section -->
+                <div class="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden relative">
+                    <div class="p-3 bg-white shadow-sm z-10 shrink-0">
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><i class="fa-solid fa-magnifying-glass"></i></span>
-                            <input type="text" id="product-search" placeholder="পণ্য খুঁজুন..." class="w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input type="text" id="product-search" placeholder="পণ্য খুঁজুন..." class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                     </div>
-                    <div id="product-grid" class="flex-1 overflow-y-auto p-2 md:p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 content-start pb-20"></div>
+                    <div id="product-grid" class="flex-1 overflow-y-auto p-2 md:p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 content-start pb-24"></div>
                 </div>
 
-                <!-- CART PANEL -->
-                <div id="cart-panel" class="w-full md:w-80 bg-white border-l flex flex-col fixed md:relative bottom-0 h-[50vh] md:h-full transform translate-y-full md:translate-y-0 transition-transform duration-300 z-50 shadow-2xl">
-                    <div class="px-4 py-3 border-b bg-emerald-50 flex justify-between items-center">
-                        <h2 class="font-bold text-emerald-800 text-sm md:text-base">বিক্রি তালিকা</h2>
+                <!-- Cart Panel -->
+                <div id="cart-panel" class="w-full md:w-96 bg-white border-l flex flex-col fixed md:relative bottom-0 h-[55vh] md:h-full transform translate-y-full md:translate-y-0 transition-transform duration-300 rounded-t-2xl md:rounded-none z-50 bottom-sheet-shadow">
+                    <div class="md:hidden w-full flex flex-col items-center pt-2 pb-1 bg-slate-50" onclick="toggleMobileCart()">
+                        <div class="w-12 h-1.5 bg-slate-400 rounded-full"></div>
+                    </div>
+                    <div class="px-3 py-2 md:p-4 border-b flex justify-between items-center bg-white">
+                        <h2 class="font-bold text-emerald-800"><i class="fa-solid fa-list-ul mr-2"></i>বিক্রি তালিকা</h2>
                         <button onclick="clearCart()" class="text-xs text-red-500 font-bold">মুছুন</button>
                     </div>
-                    <div id="cart-items" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
-                    <div class="p-4 bg-white border-t">
-                        <div class="flex justify-between text-lg font-bold mb-2">
+                    <div id="cart-items" class="flex-1 overflow-y-auto p-2 md:p-3 space-y-2"></div>
+                    <div class="p-3 bg-white border-t space-y-2">
+                        <div class="flex justify-between items-center text-xl font-bold">
                             <span>মোট</span>
                             <span id="cart-total" class="text-emerald-600">৳ ০</span>
                         </div>
-                        <button onclick="handleCheckout()" id="checkout-btn" disabled class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">চালান তৈরি করুন</button>
+                        <button onclick="handleCheckout()" id="checkout-btn" disabled class="w-full bg-emerald-600 text-white font-bold py-3 md:py-4 rounded-xl disabled:opacity-50">চালান তৈরি করুন</button>
                     </div>
                 </div>
             </div>
 
             <!-- ADMIN VIEW -->
             <div id="admin-view" class="hidden w-full h-full bg-slate-100 flex flex-col md:flex-row overflow-hidden">
-                <div class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col">
-                    <div class="p-4 border-b border-slate-700 text-white font-bold text-center">ম্যানেজমেন্ট</div>
-                    <nav class="flex-1 py-2">
-                        <button onclick="switchAdminTab('inventory')" class="w-full text-left px-6 py-3 hover:bg-slate-800 flex items-center gap-3"><i class="fa-solid fa-boxes-stacked"></i> পণ্য তালিকা</button>
-                        <button onclick="switchAdminTab('reports')" class="w-full text-left px-6 py-3 hover:bg-slate-800 flex items-center gap-3"><i class="fa-solid fa-chart-line"></i> রিপোর্ট</button>
-                        <button onclick="switchAdminTab('settings')" class="w-full text-left px-6 py-3 hover:bg-slate-800 flex items-center gap-3"><i class="fa-solid fa-sliders"></i> সেটিংস</button>
+                <div class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 h-auto md:h-full">
+                    <div class="p-4 border-b border-slate-700 text-white font-bold">অ্যাডমিন প্যানেল</div>
+                    <nav class="flex-1 overflow-y-auto py-4">
+                        <button onclick="switchAdminTab('inventory')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 flex items-center gap-3 border-l-4 border-transparent"><i class="fa-solid fa-boxes-stacked"></i> পণ্য তালিকা</button>
+                        <button onclick="switchAdminTab('reports')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 flex items-center gap-3 border-l-4 border-transparent"><i class="fa-solid fa-chart-line"></i> রিপোর্ট</button>
+                        <button onclick="switchAdminTab('settings')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 flex items-center gap-3 border-l-4 border-transparent"><i class="fa-solid fa-sliders"></i> সেটিংস</button>
                     </nav>
-                    <button onclick="exitAdminMode()" class="m-4 p-2 bg-red-900/50 text-red-200 rounded text-sm">লগআউট</button>
+                    <button onclick="exitAdminMode()" class="m-4 p-2 bg-red-900/50 text-red-200 rounded">লগআউট</button>
                 </div>
-                <div class="flex-1 overflow-y-auto p-4 md:p-6">
-                    <!-- Inventory -->
+                <div class="flex-1 overflow-y-auto p-4 md:p-8">
+                    <!-- Tabs -->
                     <div id="tab-inventory" class="admin-content space-y-4">
                         <div class="flex justify-between items-center">
                             <h2 class="text-xl font-bold">পণ্য ইনভেনটরি</h2>
                             <button onclick="openProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">+ নতুন পণ্য</button>
                         </div>
-                        <div class="bg-white rounded-lg shadow overflow-x-auto">
+                        <div class="bg-white rounded-xl shadow overflow-x-auto">
                             <table class="w-full text-left text-sm">
                                 <thead class="bg-slate-50 border-b">
                                     <tr><th class="p-3">নাম</th><th class="p-3">কেনা</th><th class="p-3">বিক্রয়</th><th class="p-3">স্টক</th><th class="p-3 text-right">অ্যাকশন</th></tr>
@@ -97,14 +119,25 @@
                     <!-- Settings -->
                     <div id="tab-settings" class="admin-content hidden space-y-4">
                         <h2 class="text-xl font-bold">দোকানের সেটিংস</h2>
-                        <div class="bg-white p-6 rounded-lg shadow max-w-md">
+                        <div class="bg-white p-6 rounded-xl shadow max-w-md">
                             <form onsubmit="saveSettings(event)" class="space-y-4">
-                                <div><label class="text-xs font-bold text-slate-500">দোকানের নাম</label><input type="text" id="set-shop-name" class="w-full p-2 border rounded"></div>
-                                <div><label class="text-xs font-bold text-slate-500">প্রোপাইটর</label><input type="text" id="set-prop" class="w-full p-2 border rounded"></div>
-                                <div><label class="text-xs font-bold text-slate-500">মোবাইল</label><input type="text" id="set-mobile" class="w-full p-2 border rounded"></div>
-                                <div><label class="text-xs font-bold text-slate-500">পিন কোড</label><input type="password" id="set-pin" class="w-full p-2 border rounded"></div>
+                                <div><label class="text-xs font-bold text-slate-500">দোকানের নাম</label><input type="text" id="setting-shop-name" class="w-full p-2 border rounded"></div>
+                                <div><label class="text-xs font-bold text-slate-500">প্রোপাইটর</label><input type="text" id="setting-proprietor" class="w-full p-2 border rounded"></div>
+                                <div><label class="text-xs font-bold text-slate-500">মোবাইল</label><input type="text" id="setting-mobile" class="w-full p-2 border rounded"></div>
                                 <button type="submit" class="bg-emerald-600 text-white px-6 py-2 rounded font-bold w-full">সেভ করুন</button>
                             </form>
+                        </div>
+                    </div>
+                    <!-- Reports Section (Simplified for Database) -->
+                    <div id="tab-reports" class="admin-content hidden space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xl font-bold">বিক্রয় রিপোর্ট</h2>
+                            <button onclick="printSalesReport()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm">রিপোর্ট প্রিন্ট</button>
+                        </div>
+                        <div id="report-summary-cards" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100"><p class="text-sm text-blue-600">মোট বিক্রয়</p><p id="report-total-sales" class="text-xl font-bold">৳ ০</p></div>
+                            <div class="bg-orange-50 p-4 rounded-xl border border-orange-100"><p class="text-sm text-orange-600">মোট খরচ</p><p id="report-total-cost" class="text-xl font-bold">৳ ০</p></div>
+                            <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100"><p class="text-sm text-emerald-600">মোট লাভ</p><p id="report-profit" class="text-xl font-bold">৳ ০</p></div>
                         </div>
                     </div>
                 </div>
@@ -112,23 +145,25 @@
         </main>
     </div>
 
-    <!-- AUTH MODAL -->
-    <div id="auth-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <!-- FAB for Mobile -->
+    <button onclick="toggleMobileCart()" class="md:hidden fixed bottom-4 right-4 z-40 bg-emerald-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center border-4 border-white">
+        <i class="fa-solid fa-cart-shopping text-xl"></i>
+        <span id="fab-count" class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white opacity-0">0</span>
+    </button>
+
+    <!-- MODALS -->
+    <div id="auth-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm no-print">
         <div class="bg-white rounded-2xl p-6 w-80 shadow-2xl">
-            <h3 class="text-lg font-bold text-center mb-4">অ্যাডমিন পিন দিন</h3>
+            <h3 class="font-bold text-center mb-4">অ্যাডমিন লগইন</h3>
             <input type="password" id="auth-pin" class="w-full text-center text-3xl tracking-widest mb-4 p-2 border-b-2 border-emerald-500 outline-none" placeholder="••••">
-            <div class="flex gap-2">
-                <button onclick="closeModal('auth-modal')" class="flex-1 py-2 text-slate-500">বাতিল</button>
-                <button onclick="verifyAdmin()" class="flex-1 py-2 bg-emerald-600 text-white rounded-lg">লগইন</button>
-            </div>
+            <button onclick="verifyAdmin()" class="w-full py-3 bg-emerald-600 text-white rounded-lg font-bold">লগইন</button>
         </div>
     </div>
 
-    <!-- PRODUCT MODAL -->
-    <div id="product-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-xl p-6 w-full max-w-sm">
+    <div id="product-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm no-print">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm mx-4">
             <h3 id="modal-title" class="font-bold text-lg mb-4">পণ্য তথ্য</h3>
-            <form onsubmit="handleProductSubmit(event)" class="space-y-3">
+            <form id="product-form" onsubmit="handleProductSubmit(event)" class="space-y-3">
                 <input type="hidden" id="prod-id">
                 <input type="text" id="prod-name" placeholder="পণ্যের নাম" required class="w-full p-2 border rounded">
                 <div class="grid grid-cols-2 gap-2">
@@ -147,35 +182,68 @@
         </div>
     </div>
 
-    <div id="toast-container" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100]"></div>
+    <!-- Memo Modal -->
+    <div id="memo-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/60 backdrop-blur-sm no-print">
+        <div class="bg-white w-full max-w-[80mm] mx-auto rounded-lg shadow-2xl flex flex-col overflow-hidden">
+            <div class="p-3 border-b flex justify-between items-center bg-slate-100 no-print">
+                <h3 class="font-bold">প্রিভিউ চালান</h3>
+                <div class="flex gap-2">
+                    <button onclick="printMemo()" class="bg-blue-600 text-white px-3 py-1 rounded text-xs">প্রিন্ট</button>
+                    <button onclick="closeModal('memo-modal')" class="bg-red-500 text-white px-3 py-1 rounded text-xs">বন্ধ</button>
+                </div>
+            </div>
+            <div id="memo-print-area" class="p-4 bg-white text-black text-sm">
+                <div class="text-center mb-4 border-b-2 border-dashed border-black pb-2">
+                    <h1 id="memo-shop-name" class="text-lg font-bold">দোকানের নাম</h1>
+                    <p id="memo-prop" class="text-[10px]">প্রোপাইটর: নাম</p>
+                    <p id="memo-mobile" class="text-[10px]">মোবাইল: ০১৭১...</p>
+                    <p id="memo-date" class="text-[10px] mt-1"></p>
+                </div>
+                <table class="w-full text-xs mb-4">
+                    <thead><tr class="border-b border-black"><td>বিবরণ</td><td class="text-center">পরিমাণ</td><td class="text-right">টাকা</td></tr></thead>
+                    <tbody id="memo-items"></tbody>
+                </table>
+                <div class="border-t-2 border-dashed border-black pt-2 flex justify-between font-bold">
+                    <span>সর্বমোট:</span><span id="memo-total">৳ ০</span>
+                </div>
+                <div class="text-center mt-6 text-[10px] italic">ধন্যবাদ, আবার আসবেন!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Report Print Container -->
+    <div id="report-print-container" class="hidden"></div>
+
+    <div id="toast-container" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-xs flex flex-col items-center"></div>
 
     <script>
         const SUPABASE_URL = 'https://dpvairveaqyuwewivaku.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_5ZTEbRp_b0_sMd4qWCRF_w_ksT9eg24';
         
-        // এখানে নাম বদলে dbClient করা হয়েছে যাতে কনফ্লিক্ট না হয়
         const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let state = {
             products: [],
             cart: [],
+            salesHistory: [],
             settings: { shop_name: "আপনার দোকান", proprietor: "প্রোপাইটর", mobile: "017...", pin: "1234" },
             isAdminUnlocked: false
         };
 
-        async function syncAll() {
+        async function syncData() {
             await fetchSettings();
             await fetchProducts();
+            await fetchSalesHistory();
         }
 
         async function fetchSettings() {
             try {
-                const { data, error } = await dbClient.from('settings').select('*').eq('id', 1).single();
+                const { data } = await dbClient.from('settings').select('*').eq('id', 1).single();
                 if (data) {
                     state.settings = data;
-                    updateUI();
+                    updateSettingsUI();
                 }
-            } catch (err) { console.log("Settings not loaded"); }
+            } catch (err) { console.log("Settings load error"); }
         }
 
         async function fetchProducts() {
@@ -185,13 +253,10 @@
             renderInventory();
         }
 
-        function updateUI() {
-            document.getElementById('shop-name-header').innerText = state.settings.shop_name;
-            document.getElementById('shop-prop-header').innerText = "প্রোপাইটর: " + state.settings.proprietor;
-            document.getElementById('set-shop-name').value = state.settings.shop_name;
-            document.getElementById('set-prop').value = state.settings.proprietor;
-            document.getElementById('set-mobile').value = state.settings.mobile;
-            document.getElementById('set-pin').value = state.settings.pin;
+        async function fetchSalesHistory() {
+            const { data } = await dbClient.from('sales').select('*').order('created_at', { ascending: false });
+            state.salesHistory = data || [];
+            updateReportSummary();
         }
 
         function renderProducts(filter = "") {
@@ -199,14 +264,14 @@
             grid.innerHTML = "";
             state.products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase())).forEach(p => {
                 const div = document.createElement('div');
-                div.className = "bg-white p-3 rounded-lg shadow-sm border flex flex-col justify-between fade-in";
+                div.className = "bg-white p-3 rounded-xl shadow-sm border flex flex-col justify-between fade-in";
                 div.innerHTML = `
-                    <div><h3 class="font-bold text-sm h-10 overflow-hidden">${p.name}</h3><p class="text-[10px] text-slate-400">${p.location || ''}</p></div>
+                    <div><h3 class="font-bold text-sm h-8 overflow-hidden">${p.name}</h3><p class="text-[10px] text-slate-400">${p.location || ''}</p></div>
                     <div class="mt-2 flex justify-between items-end">
-                        <span class="font-bold text-emerald-600">৳ ${p.sell_price}</span>
+                        <span class="font-bold text-emerald-600">৳${p.sell_price}</span>
                         <span class="text-[10px] text-slate-500">স্টক: ${p.stock}</span>
                     </div>
-                    <button onclick="addToCart(${p.id})" class="mt-2 w-full py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition-colors">কার্টে যোগ</button>
+                    <button onclick="addToCart(${p.id})" class="mt-2 w-full py-2 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold active:bg-emerald-600 active:text-white">যোগ করুন</button>
                 `;
                 grid.appendChild(div);
             });
@@ -215,7 +280,6 @@
         function addToCart(id) {
             const p = state.products.find(x => x.id === id);
             if (p.stock <= 0) return showToast("স্টক নেই!", "error");
-            
             const item = state.cart.find(x => x.id === id);
             if (item) {
                 if (item.qty < p.stock) item.qty++;
@@ -224,7 +288,7 @@
                 state.cart.push({ id, qty: 1 });
             }
             renderCart();
-            if (window.innerWidth < 768) document.getElementById('cart-panel').classList.remove('translate-y-full');
+            showToast("কার্টে যোগ হয়েছে", "success");
         }
 
         function renderCart() {
@@ -235,19 +299,23 @@
                 const p = state.products.find(x => x.id === item.id);
                 total += p.sell_price * item.qty;
                 const div = document.createElement('div');
-                div.className = "bg-slate-50 p-2 rounded border flex justify-between items-center text-xs";
+                div.className = "bg-slate-50 p-2 rounded-lg border flex justify-between items-center text-xs";
                 div.innerHTML = `
-                    <div class="flex-1 font-bold">${p.name}</div>
+                    <div class="flex-1 font-bold truncate pr-2">${p.name}</div>
                     <div class="flex items-center gap-2">
-                        <button onclick="updateQty(${p.id}, -1)" class="w-6 h-6 bg-white rounded border">-</button>
-                        <span class="w-4 text-center">${item.qty}</span>
-                        <button onclick="updateQty(${p.id}, 1)" class="w-6 h-6 bg-white rounded border">+</button>
+                        <button onclick="updateQty(${p.id}, -1)" class="w-8 h-8 bg-white rounded border">-</button>
+                        <span class="font-bold">${item.qty}</span>
+                        <button onclick="updateQty(${p.id}, 1)" class="w-8 h-8 bg-white rounded border">+</button>
                     </div>
                 `;
                 container.appendChild(div);
             });
-            document.getElementById('cart-total').innerText = `৳ ${total}`;
+            document.getElementById('cart-total').innerText = `৳${total}`;
             document.getElementById('checkout-btn').disabled = state.cart.length === 0;
+            const fab = document.getElementById('fab-count');
+            const totalQty = state.cart.reduce((s,i) => s + i.qty, 0);
+            fab.innerText = totalQty;
+            fab.style.opacity = totalQty > 0 ? '1' : '0';
         }
 
         function updateQty(id, change) {
@@ -260,37 +328,73 @@
         }
 
         async function handleCheckout() {
-            showToast("চালান সম্পন্ন হচ্ছে...", "info");
-            // Checkout process would update stocks in DB here
-            state.cart = [];
-            renderCart();
-            showToast("চালান সফল!", "success");
-            fetchProducts();
+            if (state.cart.length === 0) return;
+            showToast("চালান তৈরি হচ্ছে...", "info");
+            
+            let totalSell = 0, totalCost = 0, saleItems = [];
+            const productUpdates = [];
+
+            state.cart.forEach(item => {
+                const p = state.products.find(x => x.id === item.id);
+                const lineSell = p.sell_price * item.qty;
+                const lineCost = p.buy_price * item.qty;
+                totalSell += lineSell; totalCost += lineCost;
+                saleItems.push({ name: p.name, qty: item.qty, price: p.sell_price, time: new Date().toISOString() });
+                productUpdates.push({ id: p.id, stock: p.stock - item.qty });
+            });
+
+            try {
+                // 1. Save Sale
+                await dbClient.from('sales').insert({
+                    items: saleItems,
+                    total_sell: totalSell,
+                    total_cost: totalCost,
+                    profit: totalSell - totalCost,
+                    date: new Date().toISOString()
+                });
+
+                // 2. Update Stock
+                await dbClient.from('products').upsert(productUpdates);
+
+                showMemo(saleItems, totalSell);
+                state.cart = [];
+                renderCart();
+                syncData();
+                showToast("চালান সফল!", "success");
+            } catch (err) { showToast("সমস্যা হয়েছে", "error"); }
         }
 
+        function showMemo(items, total) {
+            const list = document.getElementById('memo-items');
+            document.getElementById('memo-shop-name').innerText = state.settings.shop_name;
+            document.getElementById('memo-prop').innerText = "প্রোপাইটর: " + state.settings.proprietor;
+            document.getElementById('memo-mobile').innerText = "মোবাইল: " + state.settings.mobile;
+            document.getElementById('memo-date').innerText = "তারিখ: " + new Date().toLocaleString('bn-BD');
+            document.getElementById('memo-total').innerText = "৳ " + total;
+            list.innerHTML = items.map(i => `<tr><td>${i.name}</td><td class="text-center">${i.qty}</td><td class="text-right">${i.price * i.qty}</td></tr>`).join('');
+            document.getElementById('memo-modal').classList.remove('hidden');
+        }
+
+        function printMemo() { document.body.classList.add('printing-memo'); window.print(); setTimeout(() => document.body.classList.remove('printing-memo'), 500); }
+
         function verifyAdmin() {
-            const pin = document.getElementById('auth-pin').value;
-            if (pin === state.settings.pin) {
-                state.isAdminUnlocked = true;
-                closeModal('auth-modal');
+            if (document.getElementById('auth-pin').value === state.settings.pin) {
+                state.isAdminUnlocked = true; closeModal('auth-modal');
                 document.getElementById('worker-view').classList.add('hidden');
                 document.getElementById('admin-view').classList.remove('hidden');
-                document.getElementById('auth-pin').value = "";
-            } else {
-                showToast("ভুল পিন কোড", "error");
-            }
+            } else showToast("ভুল পিন!", "error");
         }
 
         function renderInventory() {
             const tbody = document.getElementById('inventory-table-body');
             tbody.innerHTML = state.products.map(p => `
-                <tr>
+                <tr class="text-xs">
                     <td class="p-3 font-medium">${p.name}</td>
                     <td class="p-3">৳${p.buy_price}</td>
-                    <td class="p-3 text-emerald-600 font-bold">৳${p.sell_price}</td>
+                    <td class="p-3 font-bold text-emerald-600">৳${p.sell_price}</td>
                     <td class="p-3">${p.stock}</td>
                     <td class="p-3 text-right">
-                        <button onclick="openProductModal(${p.id})" class="text-blue-500 mr-3"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="openProductModal(${p.id})" class="text-blue-500 mr-2"><i class="fa-solid fa-pen"></i></button>
                         <button onclick="deleteProduct(${p.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 </tr>
@@ -300,92 +404,72 @@
         async function handleProductSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('prod-id').value;
-            const product = {
+            const p = {
                 name: document.getElementById('prod-name').value,
                 buy_price: parseFloat(document.getElementById('prod-buy').value),
                 sell_price: parseFloat(document.getElementById('prod-sell').value),
                 stock: parseInt(document.getElementById('prod-stock').value),
                 location: document.getElementById('prod-loc').value
             };
-            
-            if (id) await dbClient.from('products').update(product).eq('id', id);
-            else await dbClient.from('products').insert([product]);
-            
+            if (id) await dbClient.from('products').update(p).eq('id', id);
+            else await dbClient.from('products').insert([p]);
             closeModal('product-modal');
             fetchProducts();
-            showToast("পণ্য সেভ হয়েছে", "success");
+            showToast("সেভ হয়েছে", "success");
         }
 
         async function saveSettings(e) {
             e.preventDefault();
-            const news = {
-                shop_name: document.getElementById('set-shop-name').value,
-                proprietor: document.getElementById('set-prop').value,
-                mobile: document.getElementById('set-mobile').value,
-                pin: document.getElementById('set-pin').value
+            const data = {
+                shop_name: document.getElementById('setting-shop-name').value,
+                proprietor: document.getElementById('setting-proprietor').value,
+                mobile: document.getElementById('setting-mobile').value
             };
-            await dbClient.from('settings').upsert({ id: 1, ...news });
-            showToast("সেটিংস আপডেট হয়েছে", "success");
+            await dbClient.from('settings').update(data).eq('id', 1);
+            showToast("সেটিংস সেভ হয়েছে", "success");
             fetchSettings();
         }
 
-        async function deleteProduct(id) {
-            if (confirm("পণ্যটি মুছে ফেলবেন?")) {
-                await dbClient.from('products').delete().eq('id', id);
-                fetchProducts();
-                showToast("মুছে ফেলা হয়েছে", "success");
-            }
+        function updateSettingsUI() {
+            document.getElementById('shop-name-header').innerText = state.settings.shop_name;
+            document.getElementById('shop-prop-header').innerText = "প্রোপাইটর: " + state.settings.proprietor;
+            document.getElementById('setting-shop-name').value = state.settings.shop_name;
+            document.getElementById('setting-proprietor').value = state.settings.proprietor;
+            document.getElementById('setting-mobile').value = state.settings.mobile;
         }
 
-        // Helpers
+        function updateReportSummary() {
+            const totalSales = state.salesHistory.reduce((s, x) => s + x.total_sell, 0);
+            const totalCost = state.salesHistory.reduce((s, x) => s + x.total_cost, 0);
+            document.getElementById('report-total-sales').innerText = `৳ ${totalSales}`;
+            document.getElementById('report-total-cost').innerText = `৳ ${totalCost}`;
+            document.getElementById('report-profit').innerText = `৳ ${totalSales - totalCost}`;
+        }
+
+        // Standard helpers
         function showToast(m, t) {
             const c = document.getElementById('toast-container');
             const d = document.createElement('div');
-            d.className = `px-6 py-2 rounded-full text-white font-bold shadow-lg fade-in mb-2 ${t==='success'?'bg-emerald-600':'bg-red-500'}`;
+            d.className = `px-6 py-2 rounded-full text-white font-bold shadow-lg fade-in mb-2 text-sm ${t==='success'?'bg-emerald-600':'bg-red-500'}`;
             d.innerText = m;
             c.appendChild(d);
             setTimeout(() => d.remove(), 2500);
         }
         function toggleAdminAuth() { 
-            if(state.isAdminUnlocked) {
-                document.getElementById('worker-view').classList.add('hidden');
-                document.getElementById('admin-view').classList.remove('hidden');
-            } else {
-                document.getElementById('auth-modal').classList.remove('hidden');
-                document.getElementById('auth-pin').focus();
-            }
+            if(state.isAdminUnlocked) { document.getElementById('worker-view').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden'); }
+            else { document.getElementById('auth-modal').classList.remove('hidden'); document.getElementById('auth-pin').focus(); }
         }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function goHome() { 
-            document.getElementById('admin-view').classList.add('hidden');
-            document.getElementById('worker-view').classList.remove('hidden');
-        }
+        function goHome() { document.getElementById('admin-view').classList.add('hidden'); document.getElementById('worker-view').classList.remove('hidden'); }
         function exitAdminMode() { state.isAdminUnlocked = false; goHome(); }
-        function switchAdminTab(t) {
-            document.querySelectorAll('.admin-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById('tab-'+t).classList.remove('hidden');
-        }
-        function clearCart() { state.cart = []; renderCart(); }
-        function openProductModal(id = null) {
-            const m = document.getElementById('product-modal');
-            document.querySelector('#product-modal form').reset();
-            document.getElementById('prod-id').value = "";
-            if(id) {
-                const p = state.products.find(x => x.id === id);
-                document.getElementById('prod-id').value = p.id;
-                document.getElementById('prod-name').value = p.name;
-                document.getElementById('prod-buy').value = p.buy_price;
-                document.getElementById('prod-sell').value = p.sell_price;
-                document.getElementById('prod-stock').value = p.stock;
-                document.getElementById('prod-loc').value = p.location;
-            }
-            m.classList.remove('hidden');
-        }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function switchAdminTab(t) { document.querySelectorAll('.admin-content').forEach(el => el.classList.add('hidden')); document.getElementById('tab-'+t).classList.remove('hidden'); }
+        function toggleMobileCart() { document.getElementById('cart-panel').classList.toggle('translate-y-full'); }
+        async function deleteProduct(id) { if(confirm("মুছে ফেলবেন?")) { await dbClient.from('products').delete().eq('id', id); fetchProducts(); } }
 
         document.getElementById('product-search').addEventListener('input', e => renderProducts(e.target.value));
-
-        // Start
-        syncAll();
+        
+        // Load data on start
+        syncData();
     </script>
 </body>
 </html>
