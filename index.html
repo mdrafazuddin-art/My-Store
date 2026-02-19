@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>গ্রোসারি পস সিস্টেম - মোবাইল অপ্টিমাইজড</title>
+    <title>মদির দোকান</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -452,14 +452,90 @@
             <form id="product-form" onsubmit="handleProductSubmit(event)" class="space-y-3">
                 <input type="hidden" id="prod-id">
                 <div><label class="block text-xs font-bold text-slate-500 mb-1">পণ্যের নাম</label><input type="text" id="prod-name" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-bold text-slate-500 mb-1">কেনা দাম</label><input type="number" id="prod-buy" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                    <div><label class="block text-xs font-bold text-slate-500 mb-1">বিক্রয় দাম</label><input type="number" id="prod-sell" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">কেনা দাম</label><input type="number" step="0.01" id="prod-buy" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">বিক্রয় দাম</label><input type="number" step="0.01" id="prod-sell" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
                 </div>
+                
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-bold text-slate-500 mb-1">স্টক পরিমাণ</label><input type="number" id="prod-stock" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">স্টক পরিমাণ</label><input type="number" step="0.01" id="prod-stock" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
                     <div><label class="block text-xs font-bold text-slate-500 mb-1">অবস্থান</label><input type="text" id="prod-loc" placeholder="যেমন: তাক ১" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
                 </div>
+
+                <!-- NEW: Bulk System Toggle -->
+                <div class="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <span class="text-sm font-bold text-blue-800">পাইকারি (বস্তা/কার্টুন) সিস্টেম?</span>
+                    <input type="checkbox" id="bulk-toggle" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+                </div>
+
+                <!-- NEW: Bulk Inputs Container -->
+                <div id="bulk-inputs-container" class="hidden space-y-3 pt-2 border-t border-slate-100">
+                    <p class="text-xs text-slate-500 font-semibold">বাল্ক সেটিংস (যেমন: বস্তা, খাচি)</p>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- খুচরা ইউনিটের ড্রপডাউন -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">খুচরা একক (Unit)</label>
+                            <select id="prod-unit-name" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="কেজি">কেজি (KG)</option>
+                                <option value="পিস">পিস (PC)</option>
+                                <option value="লিটার">লিটার (Ltr)</option>
+                                <option value="হালি">হালি (Hali)</option>
+                                <option value="ডজন">ডজন (Doz)</option>
+                                <option value="গ্রাম">গ্রাম (Gm)</option>
+                            </select>
+                        </div>
+
+                        <!-- পাইকারি ইউনিটের ড্রপডাউন -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">পাইকারি একক (Bulk)</label>
+                            <select id="prod-bulk-name" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="বস্তা">বস্তা (Bosta)</option>
+                                <option value="খাঁচি">খাঁচি (Khachi)</option>
+                                <option value="কেস">কেস (Case)</option>
+                                <option value="কার্টুন">কার্টুন (Cartoon)</option>
+                                <option value="প্যাকেট">প্যাকেট (Packet)</option>
+                                <option value="ডজন">ডজন (Doz)</option>
+                                <option value="হালি">হালি (Hali)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">পরিমাণ প্রতি বাল্ক</label><input type="number" id="prod-bulk-qty" placeholder="50" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">বাল্ক বিক্রয় দাম</label><input type="number" id="prod-bulk-sell" placeholder="0.00" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                    </div>
+                </div>
+
+                <!-- NEW: Mid System Toggle -->
+                <div class="flex items-center justify-between bg-purple-50 p-3 rounded-lg border border-purple-100 mt-2">
+                    <span class="text-sm font-bold text-purple-800">মাঝারি (হালি/ডজন) সিস্টেম?</span>
+                    <input type="checkbox" id="mid-toggle" class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500">
+                </div>
+
+                <!-- NEW: Mid Inputs Container -->
+                <div id="mid-inputs-container" class="hidden space-y-3 pt-2 border-t border-slate-100">
+                    <p class="text-xs text-slate-500 font-semibold">মাঝারি সেটিংস (যেমন: হালি, ডজন)</p>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- মাঝারি ইউনিটের ড্রপডাউন -->
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">মাঝারি একক (Mid)</label>
+                            <select id="prod-mid-name" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-purple-500 outline-none">
+                                <option value="হালি">হালি (Hali)</option>
+                                <option value="ডজন">ডজন (Doz)</option>
+                                <option value="কেস">কেস (Case)</option>
+                                <option value="প্যাক">প্যাক (Pack)</option>
+                                <option value="সেট">সেট (Set)</option>
+                            </select>
+                        </div>
+
+                        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">পরিমাণ প্রতি Mid</label><input type="number" id="prod-mid-qty" placeholder="12" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Mid বিক্রয় দাম</label><input type="number" id="prod-mid-sell" placeholder="0.00" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                    </div>
+                </div>
+
                 <div class="flex justify-end gap-3 pt-2">
                     <button type="button" onclick="closeModal('product-modal')" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-300">বাতিল</button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">সেভ করুন</button>
@@ -498,7 +574,7 @@
                 </div>
                 <div class="mt-6 pt-2 border-t border-dashed border-slate-300 text-center text-[10px]">
                     <p class="font-bold text-base mb-1">ধন্যবাদ, আবার আসবেন!</p>
-                    <p class="text-slate-500">Powered by Grocery POS</p>
+                    <p class="text-slate-500">MRU</p>
                 </div>
             </div>
         </div>
@@ -556,6 +632,20 @@
             
             // Setup Event Listeners
             document.getElementById('product-search').addEventListener('input', (e) => renderProducts(e.target.value));
+            
+            // Bulk Toggle Listener
+            document.getElementById('bulk-toggle').addEventListener('change', (e) => {
+                const div = document.getElementById('bulk-inputs-container');
+                if(e.target.checked) div.classList.remove('hidden');
+                else div.classList.add('hidden');
+            });
+
+            // Mid Toggle Listener
+            document.getElementById('mid-toggle').addEventListener('change', (e) => {
+                const div = document.getElementById('mid-inputs-container');
+                if(e.target.checked) div.classList.remove('hidden');
+                else div.classList.add('hidden');
+            });
         }
 
         // ==========================================
@@ -598,7 +688,7 @@
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-50";
                     const timeStr = new Date(item.time).toLocaleTimeString('bn-BD', {hour: '2-digit', minute:'2-digit', useGrouping: false});
-                    row.innerHTML = `<td class="px-4 py-2">${item.name}</td><td class="px-4 py-2 text-center">${item.qty}</td><td class="px-4 py-2 text-right">৳ ${(item.price * item.qty).toLocaleString()}</td><td class="px-4 py-2 text-right text-xs text-slate-500">${timeStr}</td>`;
+                    row.innerHTML = `<td class="px-4 py-2">${item.name}</td><td class="px-4 py-2 text-center">${item.qty} ${item.unit || ''}</td><td class="px-4 py-2 text-right">৳ ${(item.price * item.qty).toLocaleString()}</td><td class="px-4 py-2 text-right text-xs text-slate-500">${timeStr}</td>`;
                     tbody.appendChild(row);
                 });
             });
@@ -685,7 +775,7 @@
                 tempFilteredSales.forEach(sale => {
                     sale.items.forEach(item => {
                         const timeStr = new Date(item.time).toLocaleTimeString('bn-BD', {hour: '2-digit', minute:'2-digit', useGrouping: false});
-                        const row = `<tr><td class="border border-black p-1 text-left">${item.name}</td><td class="border border-black p-1 text-center">${item.qty}</td><td class="border border-black p-1 text-right">৳ ${(item.price * item.qty).toLocaleString()}</td><td class="border border-black p-1 text-right">${timeStr}</td></tr>`;
+                        const row = `<tr><td class="border border-black p-1 text-left">${item.name}</td><td class="border border-black p-1 text-center">${item.qty} ${item.unit || ''}</td><td class="border border-black p-1 text-right">৳ ${(item.price * item.qty).toLocaleString()}</td><td class="border border-black p-1 text-right">${timeStr}</td></tr>`;
                         printTableBody.innerHTML += row;
                     });
                 });
@@ -707,6 +797,35 @@
             setTimeout(() => { document.body.classList.remove('printing-memo'); }, 1000);
         }
         
+        // ==========================================
+        // HELPER: Format Stock (3 TIER LOGIC)
+        // ==========================================
+        function getStockDisplay(product) {
+            let text = "";
+            let remainder = product.stock;
+
+            // 1. Calculate Bulk
+            if (product.isBulk && product.bulkQty > 0) {
+                const count = Math.floor(remainder / product.bulkQty);
+                if (count > 0) text += `${count} ${product.bulkName} `;
+                remainder = remainder % product.bulkQty;
+            }
+
+            // 2. Calculate Mid
+            if (product.isMid && product.midQty > 0) {
+                const count = Math.floor(remainder / product.midQty);
+                if (count > 0) text += `${count} ${product.midName} `;
+                remainder = remainder % product.midQty;
+            }
+
+            // 3. Calculate Unit
+            if (remainder > 0 || text === "") {
+                text += `${remainder} ${product.unitName || 'Unit'}`;
+            }
+            
+            return text.trim();
+        }
+
         // ==========================================
         // CART & PRODUCT LOGIC
         // ==========================================
@@ -738,8 +857,69 @@
             const filtered = state.products.filter(p => p.name.toLowerCase().includes(searchFilter));
             filtered.forEach(p => {
                 const isOutOfStock = p.stock <= 0;
+                const stockText = getStockDisplay(p);
+                
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-lg shadow-sm border ${isOutOfStock ? 'border-red-200 bg-red-50' : 'border-slate-200'} p-2 flex flex-col justify-between hover:shadow-md transition-shadow h-full`;
+                
+                // Button Logic (3-Tier Support)
+                let buttonsHtml = '';
+                const unitLabel = p.unitName || 'Unit';
+                
+                // Determine Grid Classes based on button count
+                let gridClass = "grid-cols-2";
+                let textSize = "text-[10px] md:text-xs";
+
+                if (p.isMid && p.isBulk) {
+                    // 3 Buttons: Unit, Mid, Bulk
+                    gridClass = "grid-cols-3 gap-1";
+                    textSize = "text-[9px] md:text-[10px]";
+                    buttonsHtml = `
+                        <div class="grid ${gridClass} mt-2">
+                            <button onclick="addToCart(${p.id}, 'unit')" ${isOutOfStock ? 'disabled' : ''} class="py-2 rounded font-medium ${textSize} transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed bg-red-50' : 'border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white active:scale-95 bg-white'}">
+                                +1 ${unitLabel}
+                            </button>
+                            <button onclick="addToCart(${p.id}, 'mid')" ${isOutOfStock ? 'disabled' : ''} class="py-2 rounded font-medium ${textSize} transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed bg-red-50' : 'border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white active:scale-95 bg-white'}">
+                                +1 ${p.midName || 'Mid'}
+                            </button>
+                            <button onclick="addToCart(${p.id}, 'bulk')" ${isOutOfStock ? 'disabled' : ''} class="py-2 rounded font-medium ${textSize} transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed bg-red-50' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white active:scale-95 bg-white'}">
+                                +1 ${p.bulkName || 'Bulk'}
+                            </button>
+                        </div>
+                    `;
+                } else if (p.isMid) {
+                    // 2 Buttons: Unit, Mid
+                    buttonsHtml = `
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <button onclick="addToCart(${p.id}, 'unit')" ${isOutOfStock ? 'disabled' : ''} class="py-1.5 rounded-lg font-medium text-[10px] md:text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed bg-red-50' : 'border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white active:scale-95 bg-white'}">
+                                +1 ${unitLabel}
+                            </button>
+                            <button onclick="addToCart(${p.id}, 'mid')" ${isOutOfStock ? 'disabled' : ''} class="py-1.5 rounded-lg font-medium text-[10px] md:text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed bg-red-50' : 'border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white active:scale-95 bg-white'}">
+                                +1 ${p.midName || 'Mid'}
+                            </button>
+                        </div>
+                    `;
+                } else if (p.isBulk) {
+                    // 2 Buttons: Unit, Bulk
+                    buttonsHtml = `
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <button onclick="addToCart(${p.id}, 'unit')" ${isOutOfStock ? 'disabled' : ''} class="py-1.5 rounded-lg font-medium text-[10px] md:text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed bg-red-50' : 'border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white active:scale-95 bg-white'}">
+                                +1 ${unitLabel}
+                            </button>
+                            <button onclick="addToCart(${p.id}, 'bulk')" ${isOutOfStock ? 'disabled' : ''} class="py-1.5 rounded-lg font-medium text-[10px] md:text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed bg-red-50' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white active:scale-95 bg-white'}">
+                                +1 ${p.bulkName || 'Bulk'}
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Normal Item
+                    buttonsHtml = `
+                        <button onclick="addToCart(${p.id}, 'unit')" ${isOutOfStock ? 'disabled' : ''} class="mt-2 w-full py-1.5 rounded-lg font-medium text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white active:scale-95'}">
+                            ${isOutOfStock ? 'স্টক নেই' : 'কার্টে যোগ'}
+                        </button>
+                    `;
+                }
+
                 card.innerHTML = `
                     <div class="mb-1">
                         <h3 class="font-bold text-slate-800 leading-tight text-sm line-clamp-2">${p.name}</h3>
@@ -747,21 +927,62 @@
                     </div>
                     <div class="flex items-center justify-between mt-auto">
                         <span class="font-bold text-emerald-600 text-base">৳ ${p.sellPrice}</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${isOutOfStock ? 'bg-red-200 text-red-700' : 'bg-slate-100 text-slate-600'}">স্টক: ${p.stock}</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${isOutOfStock ? 'bg-red-200 text-red-700' : 'bg-slate-100 text-slate-600'}">স্টক: ${stockText}</span>
                     </div>
-                    <button onclick="addToCart(${p.id})" ${isOutOfStock ? 'disabled' : ''} class="mt-2 w-full py-1.5 rounded-lg font-medium text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white active:scale-95'}">
-                        ${isOutOfStock ? 'স্টক নেই' : 'কার্টে যোগ'}
-                    </button>`;
+                    ${buttonsHtml}`;
                 grid.appendChild(card);
             });
         }
 
-        function addToCart(id) {
+        // Updated addToCart with mode (supports Unit, Mid, Bulk)
+        function addToCart(id, mode = 'unit') {
             const product = state.products.find(p => p.id === id);
-            const cartItem = state.cart.find(c => c.id === id);
-            const currentQty = cartItem ? cartItem.qty : 0;
-            if (currentQty >= product.stock) return showToast("পর্যাপ্ত স্টক নেই!", "error");
-            if (cartItem) cartItem.qty++; else state.cart.push({ id, qty: 1 });
+            if (!product) return;
+
+            let stockDeduction = 1;
+            let price = product.sellPrice;
+            let unitLabel = product.unitName || 'Unit';
+
+            if (mode === 'mid') {
+                if (!product.isMid || !product.midQty) {
+                    showToast("এই পণ্যটির জন্য মিড সেটিংস নেই!", "error");
+                    return;
+                }
+                stockDeduction = product.midQty;
+                price = product.midSellPrice;
+                unitLabel = product.midName;
+            } else if (mode === 'bulk') {
+                if (!product.isBulk || !product.bulkQty) {
+                    showToast("এই পণ্যটির জন্য বাল্ক সেটিংস নেই!", "error");
+                    return;
+                }
+                stockDeduction = product.bulkQty;
+                price = product.bulkSellPrice;
+                unitLabel = product.bulkName;
+            }
+
+            // Check stock
+            const existingItem = state.cart.find(c => c.id === id && c.mode === mode);
+            const currentQtyInCart = existingItem ? existingItem.qty : 0;
+            const totalStockNeeded = (currentQtyInCart + 1) * stockDeduction;
+
+            if (totalStockNeeded > product.stock) {
+                showToast("পর্যাপ্ত স্টক নেই!", "error");
+                return;
+            }
+
+            if (existingItem) {
+                existingItem.qty++;
+            } else {
+                state.cart.push({ 
+                    id, 
+                    qty: 1, 
+                    mode,
+                    unitLabel, 
+                    price,    
+                    stockDeduction 
+                });
+            }
             renderCart();
             showToast("তালিকায় যোগ হয়েছে", "success");
         }
@@ -776,7 +997,8 @@
             const fabCountEl = document.getElementById('fab-count');
             const checkoutBtn = document.getElementById('checkout-btn');
             container.innerHTML = "";
-            let totalSell = 0; let totalItems = 0;
+            let totalSell = 0; 
+            let totalItems = 0;
             
             if (state.cart.length === 0) {
                 container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400"><i class="fa-solid fa-basket-shopping text-3xl opacity-30 mb-2"></i><p class="text-sm">তালিকা খালি</p></div>`;
@@ -788,32 +1010,32 @@
                 checkoutBtn.classList.remove('opacity-50');
                 state.cart.forEach(item => {
                     const product = state.products.find(p => p.id === item.id);
-                    totalSell += product.sellPrice * item.qty; 
+                    totalSell += item.price * item.qty; 
                     totalItems += item.qty;
                     
                     const div = document.createElement('div');
                     div.className = "flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-50 p-2 rounded border border-slate-100 gap-2";
                     
+                    const displayName = `${product.name} <span class="text-blue-600 font-medium text-xs">(${item.unitLabel})</span>`;
+
                     const inputHtml = `
                         <div class="flex items-center gap-1 w-full sm:w-auto justify-between sm:justify-start bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                            <button onclick="updateQty(${item.id}, -1)" class="w-9 h-9 rounded bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-600 flex items-center justify-center text-lg font-bold transition-colors">-</button>
+                            <button onclick="updateQty(${item.id}, '${item.mode}', -1)" class="w-9 h-9 rounded bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-600 flex items-center justify-center text-lg font-bold transition-colors">-</button>
                             <input type="number" 
                                 value="${item.qty}" 
                                 min="1" 
-                                max="${product.stock}" 
                                 class="w-10 md:w-14 h-8 text-center font-bold text-base bg-transparent focus:outline-none" 
-                                oninput="handleQtyInput(${item.id}, this)" 
-                                onblur="handleQtyBlur(${item.id}, this)"
+                                oninput="handleQtyInput(${item.id}, '${item.mode}', this)" 
+                                onblur="handleQtyBlur(${item.id}, '${item.mode}', this)"
                             >
-                            <button onclick="updateQty(${item.id}, 1)" class="w-9 h-9 rounded bg-slate-100 hover:bg-emerald-50 hover:text-emerald-600 text-slate-600 flex items-center justify-center text-lg font-bold transition-colors">+</button>
+                            <button onclick="updateQty(${item.id}, '${item.mode}', 1)" class="w-9 h-9 rounded bg-slate-100 hover:bg-emerald-50 hover:text-emerald-600 text-slate-600 flex items-center justify-center text-lg font-bold transition-colors">+</button>
                         </div>
                     `;
 
-                    div.innerHTML = `<div class="flex-1 min-w-0 pr-2"><p class="font-bold text-sm text-slate-800 truncate leading-tight">${product.name}</p><p class="text-xs text-emerald-600 mt-0.5">৳ ${product.sellPrice} x ${item.qty}</p></div>${inputHtml}`;
+                    div.innerHTML = `<div class="flex-1 min-w-0 pr-2"><p class="font-bold text-sm text-slate-800 truncate leading-tight">${displayName}</p><p class="text-xs text-emerald-600 mt-0.5">৳ ${item.price} x ${item.qty}</p></div>${inputHtml}`;
                     container.appendChild(div);
                 });
                 
-                // Update FAB
                 fabCountEl.classList.remove('opacity-0', 'scale-0');
                 fabCountEl.innerText = totalItems > 9 ? '9+' : totalItems;
             }
@@ -821,18 +1043,25 @@
             countEl.innerText = `${totalItems} টি`;
         }
 
-        function updateQty(id, change) {
-            const item = state.cart.find(c => c.id === id);
+        function updateQty(id, mode, change) {
+            const item = state.cart.find(c => c.id === id && c.mode === mode);
             const product = state.products.find(p => p.id === id);
             if (!item) return;
-            if (change > 0 && item.qty >= product.stock) return showToast("ম্যাক্স স্টক অতিক্রম করতে পারবেন না", "error");
+
+            const newStockUsage = (item.qty + change) * item.stockDeduction;
+
+            if (newStockUsage > product.stock) {
+                showToast("ম্যাক্স স্টক অতিক্রম করতে পারবেন না", "error");
+                return;
+            }
+
             item.qty += change;
-            if (item.qty <= 0) state.cart = state.cart.filter(c => c.id !== id);
+            if (item.qty <= 0) state.cart = state.cart.filter(c => c.id !== id || c.mode !== mode);
             renderCart();
         }
 
-        function handleQtyInput(id, inputEl) {
-            const item = state.cart.find(c => c.id === id);
+        function handleQtyInput(id, mode, inputEl) {
+            const item = state.cart.find(c => c.id === id && c.mode === mode);
             const val = parseInt(inputEl.value);
             if (!item) return;
             if (!isNaN(val) && val > 0) {
@@ -841,8 +1070,8 @@
             }
         }
 
-        function handleQtyBlur(id, inputEl) {
-            const item = state.cart.find(c => c.id === id);
+        function handleQtyBlur(id, mode, inputEl) {
+            const item = state.cart.find(c => c.id === id && c.mode === mode);
             const product = state.products.find(p => p.id === id);
             let val = parseInt(inputEl.value);
 
@@ -851,7 +1080,7 @@
             if (isNaN(val) || val <= 0) {
                 if (val === 0) {
                     if (confirm("পরিমাণ ০ করা হয়েছে। আইটেমটি তালিকা থেকে সরাতে চান?")) {
-                        state.cart = state.cart.filter(c => c.id !== id);
+                        state.cart = state.cart.filter(c => !(c.id === id && c.mode === mode));
                     } else {
                         renderCart();
                         return;
@@ -859,11 +1088,15 @@
                 } else {
                     item.qty = 1;
                 }
-            } else if (val > product.stock) {
-                showToast(`সর্বোচ্চ স্টক ${product.stock}`, "error");
-                item.qty = product.stock;
             } else {
-                item.qty = val;
+                const stockUsage = val * item.stockDeduction;
+                if (stockUsage > product.stock) {
+                    showToast(`সর্বোচ্চ স্টক অতিক্রম করা হয়েছে`, "error");
+                    const maxQty = Math.floor(product.stock / item.stockDeduction);
+                    item.qty = maxQty > 0 ? maxQty : 1;
+                } else {
+                    item.qty = val;
+                }
             }
             renderCart();
         }
@@ -872,11 +1105,8 @@
             let total = 0;
             let count = 0;
             state.cart.forEach(item => {
-                const p = state.products.find(prod => prod.id === item.id);
-                if(p) {
-                    total += p.sellPrice * item.qty;
-                    count += item.qty;
-                }
+                total += item.price * item.qty;
+                count += item.qty;
             });
             document.getElementById('cart-total').innerText = `৳ ${total.toLocaleString()}`;
             document.getElementById('cart-count-badge').innerText = `${count} টি`;
@@ -891,28 +1121,40 @@
             const memoItems = [], historyItems = [];
             const stockUpdates = [];
 
-            // Prepare data
             [...state.cart].forEach(item => {
                 const product = state.products.find(p => p.id === item.id);
-                const itemSell = product.sellPrice * item.qty;
-                const itemCost = product.buyPrice * item.qty;
-                totalSell += itemSell; 
+                const itemSell = item.price * item.qty; 
+                totalSell += itemSell;
+
+                // Profit calculation works for all tiers because it relies on stockDeduction
+                const unitsDeducted = item.qty * item.stockDeduction;
+                const itemCost = product.buyPrice * unitsDeducted;
                 totalCost += itemCost;
                 
-                // Prepare stock update
                 stockUpdates.push({ 
                     id: product.id, 
-                    newStock: product.stock - item.qty 
+                    newStock: product.stock - unitsDeducted
                 });
 
-                memoItems.push({ name: product.name, qty: item.qty, rate: product.sellPrice, total: itemSell });
-                historyItems.push({ name: product.name, qty: item.qty, price: product.sellPrice, time: new Date().toISOString() });
+                historyItems.push({ 
+                    name: product.name, 
+                    qty: item.qty, 
+                    unit: item.unitLabel, 
+                    price: item.price, 
+                    time: new Date().toISOString() 
+                });
+
+                memoItems.push({ 
+                    name: `${product.name} (${item.unitLabel})`, 
+                    qty: item.qty, 
+                    rate: item.price, 
+                    total: itemSell 
+                });
             });
             
             const profit = totalSell - totalCost;
 
             try {
-                // 1. Insert Sales History
                 const { error: salesError } = await _supabase
                     .from('sales_history')
                     .insert([{
@@ -925,34 +1167,26 @@
 
                 if (salesError) throw salesError;
 
-                // 2. Update Stock for each product
-                // Ideally this uses an RPC for transaction safety, but for this scope we loop updates
                 for (const update of stockUpdates) {
                     const { error: stockError } = await _supabase
                         .from('products')
                         .update({ stock: update.newStock })
                         .eq('id', update.id);
-                    
                     if (stockError) throw stockError;
                 }
 
-                // 3. Update Local State to reflect DB
-                // We need to refresh products to get the real DB stock, or calculate it manually
-                // Calculating manually is faster and smoother for UI
                 state.products.forEach(p => {
                     const update = stockUpdates.find(u => u.id === p.id);
                     if(update) p.stock = update.newStock;
                 });
 
-                // Push to local history so it shows up immediately without re-fetch
                 state.salesHistory.unshift({ 
-                    id: Date.now(), // Temp ID
+                    id: Date.now(), 
                     date: new Date().toISOString(),
                     items: historyItems,
                     totalSell, totalCost, profit
                 });
 
-                // Success UI
                 showMemo(memoItems, totalSell);
                 state.cart = []; 
                 renderCart(); 
@@ -997,10 +1231,8 @@
             const code = document.getElementById('reset-code').value;
             if(code === CONFIG.MASTER_RESET_CODE) {
                 state.settings.pin = CONFIG.DEFAULT_PIN;
-                // Update DB
                 const { error } = await _supabase.from('settings').update({ pin: CONFIG.DEFAULT_PIN }).eq('id', state.settings.id);
                 if(error) { showToast("রিসেট ব্যর্থ হয়েছে", "error"); return; }
-                
                 showToast("পাসওয়ার্ড ডিফল্ট (1234) সেট হয়েছে", "success");
                 toggleForgotPassword(false);
                 closeModal('auth-modal');
@@ -1017,8 +1249,6 @@
             if(newPin.length < 4) return showToast("পাসওয়ার্ড কমপক্ষে ৪ ডিজিট হতে হবে", "error");
             
             state.settings.pin = newPin;
-            
-            // Update DB
             const { error } = await _supabase.from('settings').update({ pin: newPin }).eq('id', state.settings.id);
             
             if(error) {
@@ -1041,8 +1271,10 @@
             const tbody = document.getElementById('inventory-table-body'); 
             tbody.innerHTML = "";
             state.products.forEach(p => {
+                // Stock display now uses the 3-tier logic automatically
+                const stockText = getStockDisplay(p);
                 const tr = document.createElement('tr'); tr.className = "border-b hover:bg-slate-50";
-                tr.innerHTML = `<td class="px-4 py-3 font-medium whitespace-nowrap">${p.name}</td><td class="px-4 py-3">৳ ${p.buyPrice}</td><td class="px-4 py-3 text-emerald-600 font-bold">৳ ${p.sellPrice}</td><td class="px-4 py-3">${p.stock}</td><td class="px-4 py-3 text-sm text-slate-500">${p.location}</td><td class="px-4 py-3 text-right"><button onclick="editProduct(${p.id})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button></td>`;
+                tr.innerHTML = `<td class="px-4 py-3 font-medium whitespace-nowrap">${p.name}</td><td class="px-4 py-3">৳ ${p.buyPrice}</td><td class="px-4 py-3 text-emerald-600 font-bold">৳ ${p.sellPrice}</td><td class="px-4 py-3">${stockText}</td><td class="px-4 py-3 text-sm text-slate-500">${p.location}</td><td class="px-4 py-3 text-right"><button onclick="editProduct(${p.id})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button></td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -1051,6 +1283,13 @@
             const modal = document.getElementById('product-modal'); 
             const form = document.getElementById('product-form'); 
             form.reset();
+            
+            // Reset Toggles
+            document.getElementById('bulk-inputs-container').classList.add('hidden');
+            document.getElementById('bulk-toggle').checked = false;
+            document.getElementById('mid-inputs-container').classList.add('hidden');
+            document.getElementById('mid-toggle').checked = false;
+
             if (id) {
                 const p = state.products.find(x => x.id === id);
                 document.getElementById('prod-id').value = p.id; 
@@ -1060,6 +1299,25 @@
                 document.getElementById('prod-stock').value = p.stock; 
                 document.getElementById('prod-loc').value = p.location; 
                 document.getElementById('modal-title').innerText = "পণ্য এডিট করুন";
+
+                // Bulk Data
+                if (p.isBulk) {
+                    document.getElementById('bulk-toggle').checked = true;
+                    document.getElementById('bulk-inputs-container').classList.remove('hidden');
+                    document.getElementById('prod-unit-name').value = p.unitName || '';
+                    document.getElementById('prod-bulk-name').value = p.bulkName || '';
+                    document.getElementById('prod-bulk-qty').value = p.bulkQty || '';
+                    document.getElementById('prod-bulk-sell').value = p.bulkSellPrice || '';
+                }
+
+                // Mid Data
+                if (p.isMid) {
+                    document.getElementById('mid-toggle').checked = true;
+                    document.getElementById('mid-inputs-container').classList.remove('hidden');
+                    document.getElementById('prod-mid-name').value = p.midName || '';
+                    document.getElementById('prod-mid-qty').value = p.midQty || '';
+                    document.getElementById('prod-mid-sell').value = p.midSellPrice || '';
+                }
             } else { 
                 document.getElementById('prod-id').value = ""; 
                 document.getElementById('modal-title').innerText = "নতুন পণ্য যুক্ত করুন"; 
@@ -1092,24 +1350,35 @@
             const stock = parseInt(document.getElementById('prod-stock').value); 
             const loc = document.getElementById('prod-loc').value;
             
+            // Bulk Fields
+            const isBulk = document.getElementById('bulk-toggle').checked;
+            const unitName = document.getElementById('prod-unit-name').value;
+            const bulkName = document.getElementById('prod-bulk-name').value;
+            const bulkQty = parseFloat(document.getElementById('prod-bulk-qty').value) || 0;
+            const bulkSellPrice = parseFloat(document.getElementById('prod-bulk-sell').value) || 0;
+
+            // NEW: Mid Fields
+            const isMid = document.getElementById('mid-toggle').checked;
+            const midName = document.getElementById('prod-mid-name').value;
+            const midQty = parseFloat(document.getElementById('prod-mid-qty').value) || 0;
+            const midSellPrice = parseFloat(document.getElementById('prod-mid-sell').value) || 0;
+
+            const payload = { 
+                name, buyPrice: buy, sellPrice: sell, stock, location: loc,
+                isBulk, unitName, bulkName, bulkQty, bulkSellPrice,
+                isMid, midName, midQty, midSellPrice // Include Mid fields
+            };
+            
             try {
                 if (id) { 
-                    // Update
-                    const { error } = await _supabase.from('products').update({ name, buyPrice: buy, sellPrice: sell, stock, location: loc }).eq('id', id);
+                    const { error } = await _supabase.from('products').update(payload).eq('id', id);
                     if(error) throw error;
-                    
                     const p = state.products.find(x => x.id == id); 
-                    Object.assign(p, { name, buyPrice: buy, sellPrice: sell, stock, location: loc }); 
+                    Object.assign(p, payload); 
                     showToast("আপডেট সফল হয়েছে", "success"); 
                 } else { 
-                    // Insert
-                    const newId = Date.now(); // Simple ID generation or let DB handle it. Supabase usually needs specific ID instructions or relies on serial. Assuming we provide ID for simplicity based on previous code.
-                    // Better: let Supabase return the inserted row.
-                    const { data, error } = await _supabase.from('products').insert([{ name, buyPrice: buy, sellPrice: sell, stock, location: loc }]).select();
-                    
+                    const { data, error } = await _supabase.from('products').insert([payload]).select();
                     if(error) throw error;
-                    
-                    // Add returned data to state to get the correct DB ID
                     if(data && data.length > 0) {
                         state.products.push(data[0]);
                     }
