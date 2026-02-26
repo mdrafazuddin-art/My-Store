@@ -106,6 +106,40 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ==========================================
+           LOGIN TAB STYLES (Custom Logic)
+           ========================================== */
+        .login-tab-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Worker Active State: Emerald */
+        .login-tab-btn.worker-active {
+            background-color: #059669; /* Emerald 600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);
+            font-weight: 700;
+        }
+
+        /* Admin Active State: Slate/Dark */
+        .login-tab-btn.admin-active {
+            background-color: #1e293b; /* Slate 800 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(30, 41, 59, 0.3);
+            font-weight: 700;
+        }
+
+        /* Inactive State */
+        .login-tab-btn:not(.worker-active):not(.admin-active) {
+            background-color: transparent;
+            color: #64748b; /* Slate 500 */
+            font-weight: 500;
+        }
+        .login-tab-btn:not(.worker-active):not(.admin-active):hover {
+            background-color: #f1f5f9; /* Slate 100 */
+            color: #334155;
+        }
     </style>
     
     <script>
@@ -114,7 +148,8 @@
         // ==========================================
         const CONFIG = {
             DEFAULT_PIN: "1234",
-            MASTER_RESET_CODE: "0000"
+            WORKER_DEFAULT_PIN: "1234", 
+            MASTER_RESET_CODE: "00000" 
         };
 
         // Initialize Supabase Client
@@ -131,9 +166,10 @@
                 shopName: "আপনার দোকান",
                 proprietor: "প্রোপাইটর নাম",
                 mobile: "01700000000",
-                pin: CONFIG.DEFAULT_PIN
+                pin: CONFIG.DEFAULT_PIN,
+                worker_pin: CONFIG.WORKER_DEFAULT_PIN 
             },
-            isAdminUnlocked: false
+            currentUser: null 
         };
 
         // ==========================================
@@ -153,13 +189,12 @@
                 const { data: sales, error: salesError } = await _supabase
                     .from('sales_history')
                     .select('*')
-                    .order('date', { ascending: false }); // Newest first
+                    .order('date', { ascending: false });
 
                 if (salesError) throw salesError;
                 state.salesHistory = sales || [];
 
                 // 3. Fetch Settings
-                // We assume there is at least one row, usually ID 1.
                 const { data: settingsData, error: settingsError } = await _supabase
                     .from('settings')
                     .select('*')
@@ -169,48 +204,180 @@
 
                 if (settingsData && settingsData.length > 0) {
                     state.settings = settingsData[0];
+                    if (!state.settings.worker_pin) {
+                        state.settings.worker_pin = CONFIG.WORKER_DEFAULT_PIN;
+                        _supabase.from('settings').update({ worker_pin: CONFIG.WORKER_DEFAULT_PIN }).eq('id', state.settings.id);
+                    }
                 } else {
-                    // If no settings exist, insert default row
                     const { error: insertError } = await _supabase
                         .from('settings')
                         .insert([{
                             shopName: state.settings.shopName,
                             proprietor: state.settings.proprietor,
                             mobile: state.settings.mobile,
-                            pin: state.settings.pin
+                            pin: state.settings.pin,
+                            worker_pin: CONFIG.WORKER_DEFAULT_PIN
                         }]);
                     if (insertError) console.error("Failed to create default settings", insertError);
                 }
 
-                // Hide loading screen and render
+                // Hide loading screen only after data fetch
                 document.getElementById('loading-screen').classList.add('hidden');
-                renderProducts();
-                renderCart();
-                updateSettingsUI();
+                
+                // If app is already visible (after login), render
+                if(!document.getElementById('app').classList.contains('hidden')){
+                    renderProducts();
+                    renderCart();
+                    updateSettingsUI();
+                }
 
             } catch (err) {
                 console.error("Data Load Error:", err);
                 showToast("ডাটাবেস লোড করতে সমস্যা হয়েছে!", "error");
-                // Even on error, hide loader so user can see UI (though it might be empty)
                 document.getElementById('loading-screen').classList.add('hidden');
             }
         }
-
-        // NOTE: saveData() is removed as individual functions now handle DB updates directly.
     </script>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden">
 
+    <!-- ==========================================
+         LOGIN SCREEN (Redesigned for Mobile & UX)
+         ========================================== -->
+    <!-- Fixed: min-h-screen, flex-col, justify-center ensures perfect centering. 
+         overflow-y-auto handles scrolling when keyboard is up or content is long. -->
+    <div id="login-screen" class="fixed inset-0 z-[200] bg-slate-50/95 backdrop-blur-sm min-h-screen flex flex-col items-center justify-center py-6 px-4 overflow-y-auto hidden">
+        
+        <!-- Login Card: Max width constrained, rounded corners, premium shadow -->
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-100/50 relative transform transition-all">
+            
+            <!-- Header Section: Clean, Professional (Slightly smaller on mobile) -->
+            <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 p-5 md:p-8 text-center text-white relative overflow-hidden">
+                <!-- Decorative Circle -->
+                <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                
+                <div class="w-16 h-16 md:w-20 md:h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 backdrop-blur-md border-2 border-white/20 shadow-lg">
+                    <i class="fa-solid fa-store text-3xl md:text-4xl text-white"></i>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-bold mb-1 tracking-tight">মদির দোকান</h1>
+                <p class="text-emerald-100 text-xs md:text-sm font-medium leading-relaxed">স্বাগতম! দয়া করে লগইন করুন</p>
+            </div>
+
+            <!-- Login Switcher (Tabs) -->
+            <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex justify-center">
+                <div class="bg-slate-200 p-1 rounded-xl inline-flex w-full relative shadow-inner">
+                    <!-- Worker Tab -->
+                    <button id="btn-login-worker" onclick="toggleLoginView('worker')" class="login-tab-btn worker-active flex-1 py-2.5 rounded-lg font-bold text-sm md:text-base leading-relaxed flex items-center justify-center gap-2 transition-all">
+                        <i class="fa-solid fa-user-check"></i> ওয়ার্কার
+                    </button>
+                    <!-- Admin Tab -->
+                    <button id="btn-login-admin" onclick="toggleLoginView('admin')" class="login-tab-btn flex-1 py-2.5 rounded-lg font-bold text-sm md:text-base leading-relaxed flex items-center justify-center gap-2 transition-all">
+                        <i class="fa-solid fa-user-tie"></i> অ্যাডমিন
+                    </button>
+                </div>
+            </div>
+
+            <!-- Forms Container -->
+            <div class="p-5 md:p-8 bg-white min-h-[280px]">
+                
+                <!-- 1. WORKER LOGIN FORM -->
+                <div id="worker-login-panel" class="animate-fade-in h-full flex flex-col justify-center">
+                    <h2 class="text-lg md:text-xl font-bold text-emerald-800 mb-5 text-center flex items-center justify-center gap-2 leading-relaxed">
+                        <i class="fa-solid fa-key text-emerald-600"></i> ওয়ার্কার পিন দিন
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="relative group">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" id="worker-login-pin" class="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-lg tracking-[0.2em] text-center transition-all font-medium leading-relaxed" placeholder="•••••">
+                        </div>
+                        
+                        <button onclick="performLogin('worker')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-[0.98] text-lg leading-relaxed">
+                            লগইন করুন
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. ADMIN LOGIN FORM -->
+                <!-- Updated: Added 'relative' to parent for absolute positioning of the icon -->
+                <div id="admin-login-panel" class="hidden animate-fade-in h-full flex flex-col relative">
+                    
+                    <!-- New Trigger Icon: Absolute positioned at top-right -->
+                    <button onclick="openMasterCodeModal()" class="absolute top-0 right-0 p-2 text-slate-400 hover:text-blue-600 hover:rotate-90 transition-all duration-300 focus:outline-none z-10" title="মাস্টার কোড">
+                        <i class="fa-solid fa-gear text-lg"></i>
+                    </button>
+
+                    <h2 class="text-lg md:text-xl font-bold text-slate-800 mb-5 text-center flex items-center justify-center gap-2 leading-relaxed">
+                        <i class="fa-solid fa-shield-halved text-slate-700"></i> অ্যাডমিন পিন দিন
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="relative group">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-slate-600 transition-colors"><i class="fa-solid fa-fingerprint"></i></span>
+                            <input type="password" id="admin-login-pin" class="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent text-lg tracking-[0.2em] text-center transition-all font-medium leading-relaxed" placeholder="•••••">
+                        </div>
+                        
+                        <button onclick="performLogin('admin')" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-[0.98] text-lg leading-relaxed">
+                            অ্যাডমিন প্যানেলে যান
+                        </button>
+                    </div>
+
+                    <!-- Removed: Text link at bottom (Replaced by gear icon above) -->
+                </div>
+                
+                <!-- Version Footer -->
+                <div class="mt-6 text-center">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MASTER CODE MODAL (Modern & Premium)
+         ========================================== -->
+    <div id="master-code-modal" class="fixed inset-0 z-[300] hidden flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 opacity-0">
+        <!-- Modal Content: Scale animation on open -->
+        <div class="bg-white w-full max-w-sm mx-5 rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-95 duration-300 border border-white/50" id="master-code-content">
+            
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-slate-800 to-slate-900 p-6 text-center relative">
+                <button onclick="closeMasterCodeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+                <div class="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3 border border-white/10 shadow-inner">
+                    <i class="fa-solid fa-user-shield text-2xl text-blue-300"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white tracking-wide">মাস্টার কোড দিন</h3>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 md:p-8">
+                <p class="text-slate-500 text-sm mb-6 text-center leading-relaxed">পাসওয়ার্ড পুনরুদ্ধারের জন্য গোপন কোড প্রদান করুন।</p>
+                
+                <div class="relative mb-6">
+                    <input type="password" id="master-code-input" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-center text-lg tracking-widest font-bold text-slate-800 transition-all leading-relaxed" placeholder="*****">
+                </div>
+                
+                <!-- Result Display Area -->
+                <div id="master-code-result" class="mb-6 text-sm hidden rounded-xl overflow-hidden shadow-sm border break-words leading-relaxed"></div>
+                
+                <!-- Actions -->
+                <div class="flex gap-3">
+                    <button onclick="closeMasterCodeModal()" class="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold py-3 rounded-xl transition-colors text-sm">বন্ধ</button>
+                    <button onclick="checkMasterCode()" class="flex-1 bg-blue-600 text-white hover:bg-blue-700 font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-200 active:scale-[0.98] text-sm">চেক করুন</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Screen -->
     <div id="loading-screen" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center">
         <div class="loader mb-4"></div>
-        <p class="text-slate-600 font-medium">সার্ভারের সাথে সংযোগ হচ্ছে...</p>
+        <p class="text-slate-600 font-medium leading-relaxed">সার্ভারের সাথে সংযোগ হচ্ছে...</p>
     </div>
 
-    <div id="app" class="flex flex-col h-full w-full relative">
+    <div id="app" class="flex flex-col h-full w-full relative hidden">
         
-        <!-- HEADER (Compact on Mobile) -->
-        <header class="bg-emerald-700 text-white shadow-md z-20 shrink-0 cursor-pointer select-none no-print" onclick="goHome()">
+        <!-- HEADER -->
+        <header class="bg-emerald-700 text-white shadow-md z-20 shrink-0 select-none no-print">
             <div class="max-w-7xl mx-auto px-3 h-14 md:h-16 flex items-center justify-between">
                 <div class="flex items-center gap-2 md:gap-3">
                     <i class="fa-solid fa-shop text-xl md:text-2xl text-emerald-300"></i>
@@ -219,8 +386,15 @@
                         <p id="shop-prop-header" class="text-[10px] md:text-xs text-emerald-200 hidden sm:block">প্রোপাইটর: নাম লিখুন</p>
                     </div>
                 </div>
-                <button onclick="event.stopPropagation(); toggleAdminAuth()" class="p-2 rounded-full hover:bg-emerald-800 transition-colors active:scale-95" title="সেটিংস">
+                
+                <!-- Admin Only: Settings Button (Hidden for Workers) -->
+                <button id="header-settings-btn" onclick="event.stopPropagation(); toggleAdminAuth()" class="p-2 rounded-full hover:bg-emerald-800 transition-colors active:scale-95 hidden" title="সেটিংস">
                     <i class="fa-solid fa-gear text-lg md:text-xl"></i>
+                </button>
+
+                <!-- Logout Button (Always visible if logged in) -->
+                <button onclick="event.stopPropagation(); logout()" class="ml-2 p-2 rounded-full hover:bg-red-600 transition-colors active:scale-95" title="লগআউট">
+                    <i class="fa-solid fa-right-from-bracket text-lg md:text-xl"></i>
                 </button>
             </div>
         </header>
@@ -228,7 +402,7 @@
         <!-- MAIN CONTENT -->
         <main id="main-content" class="flex-1 flex overflow-hidden relative no-print">
             
-            <!-- WORKER MODE -->
+            <!-- WORKER VIEW (Default for workers, accessible for admin) -->
             <div id="worker-view" class="flex flex-col md:flex-row w-full h-full">
                 
                 <!-- Product Grid Section -->
@@ -238,7 +412,7 @@
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-magnifying-glass"></i></span>
                             <input type="text" id="product-search" placeholder="পণ্য খুঁজুন..." 
-                                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm md:text-base text-slate-700 shadow-sm">
+                                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm md:text-base text-slate-700 shadow-sm leading-relaxed">
                         </div>
                     </div>
 
@@ -247,10 +421,9 @@
                 </div>
 
                 <!-- Cart Panel (Bottom Sheet on Mobile, Sidebar on Desktop) -->
-                <!-- z-50 ensures it is above FAB (z-40) and Header (z-20) -->
                 <div id="cart-panel" class="w-full md:w-96 bg-white border-l border-slate-200 flex flex-col shadow-2xl z-50 fixed md:relative bottom-0 h-[55vh] md:h-full transform translate-y-full md:translate-y-0 transition-transform duration-300 ease-out rounded-t-2xl md:rounded-none bottom-sheet-shadow">
                     
-                    <!-- Mobile Handle (Visible only on mobile) -->
+                    <!-- Mobile Handle -->
                     <div class="md:hidden w-full flex flex-col items-center pt-2 pb-1 cursor-grab active:cursor-grabbing bg-slate-50" onclick="toggleMobileCart()">
                         <div class="w-12 h-1.5 bg-slate-400 rounded-full mb-2"></div>
                     </div>
@@ -259,7 +432,6 @@
                     <div class="px-3 py-2 md:p-4 border-b border-slate-100 flex justify-between items-center bg-white md:bg-white">
                         <div class="flex items-center gap-2 cursor-pointer md:cursor-default flex-1" onclick="toggleMobileCart()">
                             <h2 class="font-bold text-base md:text-lg text-emerald-800"><i class="fa-solid fa-list-ul mr-1 md:mr-2"></i>বিক্রি তালিকা</h2>
-                            <!-- Down arrow icon for mobile to indicate closing -->
                             <i class="fa-solid fa-chevron-down md:hidden text-slate-400" id="mobile-cart-icon"></i>
                         </div>
                         <button onclick="clearCart(event)" class="text-xs md:text-sm text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded hover:bg-red-50 transition shrink-0">মুছুন</button>
@@ -268,7 +440,7 @@
                     <!-- Cart Items (Scrollable) -->
                     <div id="cart-items" class="flex-1 overflow-y-auto p-2 md:p-3 space-y-2"></div>
 
-                    <!-- Cart Footer (Totals & Checkout) -->
+                    <!-- Cart Footer -->
                     <div class="p-3 bg-white border-t border-slate-200 space-y-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0">
                         <div class="flex justify-between items-center text-xs md:text-sm font-medium text-slate-600">
                             <span>মোট পণ্য:</span>
@@ -278,14 +450,14 @@
                             <span>মোট</span>
                             <span id="cart-total" class="text-emerald-600">৳ ০</span>
                         </div>
-                        <button onclick="handleCheckout()" id="checkout-btn" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 md:py-4 rounded-xl shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 text-base md:text-lg mt-2">
+                        <button onclick="handleCheckout()" id="checkout-btn" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 md:py-4 rounded-xl shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 text-base md:text-lg mt-2 leading-relaxed">
                             চালান তৈরি করুন
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- ADMIN MODE -->
+            <!-- ADMIN VIEW (Restricted to Admins) -->
             <div id="admin-view" class="hidden w-full h-full bg-slate-100 flex flex-col md:flex-row overflow-hidden">
                 
                 <!-- Sidebar -->
@@ -295,13 +467,19 @@
                     <!-- Navigation -->
                     <nav class="flex-1 overflow-y-auto py-4 space-y-1">
                         <button onclick="switchAdminTab('inventory')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent active-tab"><i class="fa-solid fa-boxes-stacked w-6"></i> পণ্য তালিকা</button>
-                        <button onclick="switchAdminTab('reports')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent"><i class="fa-solid fa-chart-line w-6"></i> বিক্রয় রিপোর্ট</button>
-                        <button onclick="switchAdminTab('settings')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent"><i class="fa-solid fa-sliders w-6"></i> দোকানের সেটিংস</button>
+                        
+                        <!-- Reports Tab (ID added to hide for workers) -->
+                        <button id="nav-reports" onclick="switchAdminTab('reports')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent"><i class="fa-solid fa-chart-line w-6"></i> বিক্রয় রিপোর্ট</button>
+                        
+                        <button id="nav-settings" onclick="switchAdminTab('settings')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent"><i class="fa-solid fa-sliders w-6"></i> দোকানের সেটিংস</button>
+                        
+                        <!-- User Management Tab -->
+                        <button id="nav-users" onclick="switchAdminTab('users')" class="admin-tab w-full text-left px-6 py-3 hover:bg-slate-800 hover:text-white transition-colors border-l-4 border-transparent"><i class="fa-solid fa-shield-halved w-6"></i> সিকিউরিটি ম্যানেজমেন্ট</button>
                     </nav>
                     
                     <div class="p-4 border-t border-slate-700 shrink-0">
-                        <button onclick="exitAdminMode()" class="w-full flex items-center px-2 py-2 text-sm bg-red-900/50 text-red-200 hover:bg-red-600 hover:text-white rounded transition">
-                            <i class="fa-solid fa-right-from-bracket mr-2"></i> লগআউট
+                        <button onclick="exitAdminMode()" class="w-full flex items-center px-2 py-2 text-sm bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white rounded transition">
+                            <i class="fa-solid fa-arrow-left mr-2"></i> ফিরে যান
                         </button>
                     </div>
                 </div>
@@ -312,11 +490,10 @@
                     <!-- Tab: Inventory -->
                     <div id="tab-inventory" class="admin-content space-y-2 md:space-y-4">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 md:gap-3">
-                            <h2 class="text-lg md:text-2xl font-bold text-slate-800">পণ্য ইনভেনটরি</h2>
+                            <h2 class="text-lg md:text-2xl font-bold text-slate-800 leading-relaxed">পণ্য ইনভেন্টরি</h2>
                             <button onclick="openProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition text-sm"><i class="fa-solid fa-plus mr-2"></i> নতুন পণ্য</button>
                         </div>
                         
-                        <!-- Table Container for Mobile Scroll -->
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-sm text-slate-600 min-w-[600px]">
@@ -339,7 +516,7 @@
                     <!-- Tab: Reports -->
                     <div id="tab-reports" class="admin-content hidden space-y-4 md:space-y-6">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
-                            <h2 class="text-lg md:text-2xl font-bold text-slate-800">বিক্রয় রিপোর্ট</h2>
+                            <h2 class="text-lg md:text-2xl font-bold text-slate-800 leading-relaxed">বিক্রয় রিপোর্ট</h2>
                             <button onclick="printSalesReport()" class="bg-slate-800 text-white px-4 py-2 rounded-lg shadow hover:bg-slate-900 transition flex items-center gap-2">
                                 <i class="fa-solid fa-print"></i> রিপোর্ট প্রিন্ট
                             </button>
@@ -394,8 +571,9 @@
 
                     <!-- Tab: Settings -->
                     <div id="tab-settings" class="admin-content hidden space-y-4 md:space-y-6">
-                        <h2 class="text-lg md:text-2xl font-bold text-slate-800">দোকানের সেটিংস</h2>
+                        <h2 class="text-lg md:text-2xl font-bold text-slate-800 leading-relaxed">দোকানের সেটিংস</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Shop Info -->
                             <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
                                 <h3 class="font-bold text-lg mb-4 text-emerald-700">দোকানের তথ্য</h3>
                                 <form id="settings-form" onsubmit="saveSettings(event)" class="space-y-4">
@@ -405,16 +583,68 @@
                                     <button type="submit" class="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition">সেভ করুন</button>
                                 </form>
                             </div>
-                            <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
-                                <h3 class="font-bold text-lg mb-4 text-red-700">নিরাপত্তা</h3>
-                                <form onsubmit="changePassword(event)" class="space-y-4">
-                                    <div><label class="block text-sm font-medium text-slate-700 mb-1">বর্তমান পাসওয়ার্ড</label><input type="password" id="current-pin" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-red-500 outline-none"></div>
-                                    <div><label class="block text-sm font-medium text-slate-700 mb-1">নতুন পাসওয়ার্ড</label><input type="password" id="new-pin" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-red-500 outline-none"></div>
-                                    <button type="submit" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition">পাসওয়ার্ড পরিবর্তন করুন</button>
+                        </div>
+                    </div>
+
+                    <!-- Tab: User Management (Security Management) -->
+                    <div id="tab-users" class="admin-content hidden space-y-6">
+                        <div class="mb-4">
+                            <h2 class="text-2xl font-bold text-slate-800 leading-relaxed">সিকিউরিটি ম্যানেজমেন্ট</h2>
+                            <p class="text-slate-500 text-sm mt-1 leading-relaxed">এখান থেকে আপনি অ্যাডমিন এবং ওয়ার্কার পাসওয়ার্ড পরিবর্তন করতে পারবেন।</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Admin PIN Section -->
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-slate-700">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                                        <i class="fa-solid fa-user-tie"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-lg text-slate-800">অ্যাডমিন পাসওয়ার্ড</h3>
+                                        <p class="text-xs text-slate-500">পুরো সিস্টেমের কন্ট্রোল</p>
+                                    </div>
+                                </div>
+                                <form onsubmit="updateAdminPin(event)" class="space-y-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1">বর্তমান অ্যাডমিন পাসওয়ার্ড</label>
+                                        <input type="password" id="admin-current-pin" required class="w-full px-3 py-2 rounded border border-slate-300 focus:ring-2 focus:ring-slate-500 outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1">নতুন অ্যাডমিন পাসওয়ার্ড</label>
+                                        <input type="password" id="admin-new-pin" required class="w-full px-3 py-2 rounded border border-slate-300 focus:ring-2 focus:ring-slate-500 outline-none">
+                                    </div>
+                                    <button type="submit" class="w-full bg-slate-700 text-white font-bold py-2 rounded hover:bg-slate-800 transition">
+                                        আপডেট করুন
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Worker PIN Section -->
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-blue-500">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                        <i class="fa-solid fa-user-check"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-lg text-slate-800">ওয়ার্কার পাসওয়ার্ড</h3>
+                                        <p class="text-xs text-slate-500">বিক্রি করার জন্য ব্যবহৃত</p>
+                                    </div>
+                                </div>
+                                <form onsubmit="updateWorkerPin(event)" class="space-y-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1">ওয়ার্কার পাসওয়ার্ড</label>
+                                        <input type="text" id="worker-new-pin" required class="w-full px-3 py-2 rounded border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="যেমন: 1234">
+                                    </div>
+                                    <p class="text-xs text-slate-500 bg-blue-50 p-2 rounded leading-relaxed">ওয়ার্কাররা শুধুমাত্র বিক্রি করতে পারবে। রিপোর্ট দেখতে পারবে না।</p>
+                                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition">
+                                        আপডেট করুন
+                                    </button>
                                 </form>
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </main>
@@ -427,31 +657,14 @@
     </button>
 
     <!-- MODALS -->
-    <div id="auth-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm no-print">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-80 relative mx-4">
-            <button onclick="closeModal('auth-modal')" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <div id="login-view">
-                <h3 class="text-xl font-bold text-center mb-4 text-slate-800">অ্যাডমিন লগইন</h3>
-                <p class="text-sm text-slate-500 text-center mb-4">প্যানেলে ঢোকার জন্য পাসওয়ার্ড দিন</p>
-                <input type="password" id="auth-pin" class="w-full text-center text-3xl tracking-[0.5em] mb-4 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="•••••">
-                <button onclick="verifyAdmin()" class="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium text-lg">লগইন</button>
-                <div class="mt-4 text-center"><button onclick="toggleForgotPassword(true)" class="text-sm text-blue-600 hover:underline">পাসওয়ার্ড ভুলে গেছেন?</button></div>
-            </div>
-            <div id="reset-view" class="hidden">
-                <h3 class="text-xl font-bold text-center mb-2 text-slate-800">পাসওয়ার্ড রিসেট</h3>
-                <p class="text-xs text-center text-slate-500 mb-4">মাস্টার রিসেট কোড দিন</p>
-                <input type="text" id="reset-code" class="w-full text-center text-2xl tracking-widest mb-4 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none" placeholder="****">
-                <div class="flex gap-2"><button onclick="toggleForgotPassword(false)" class="flex-1 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">বাতিল</button><button onclick="resetPassword()" class="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">রিসেট</button></div>
-            </div>
-        </div>
-    </div>
-
+    
+    <!-- Product Modal -->
     <div id="product-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm no-print">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 id="modal-title" class="text-xl font-bold mb-4 text-slate-800">পণ্য যুক্ত করুন</h3>
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-slate-800 leading-relaxed">পণ্য যুক্ত করুন</h3>
             <form id="product-form" onsubmit="handleProductSubmit(event)" class="space-y-3">
                 <input type="hidden" id="prod-id">
-                <div><label class="block text-xs font-bold text-slate-500 mb-1">পণ্যের নাম</label><input type="text" id="prod-name" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">পণ্যের নাম</label><input type="text" id="prod-name" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed"></div>
                 
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="block text-xs font-bold text-slate-500 mb-1">কেনা দাম</label><input type="number" step="0.01" id="prod-buy" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
@@ -463,18 +676,17 @@
                     <div><label class="block text-xs font-bold text-slate-500 mb-1">অবস্থান</label><input type="text" id="prod-loc" placeholder="যেমন: তাক ১" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
                 </div>
 
-                <!-- NEW: Bulk System Toggle -->
+                <!-- Bulk System Toggle -->
                 <div class="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
                     <span class="text-sm font-bold text-blue-800">পাইকারি (বস্তা/কার্টুন) সিস্টেম?</span>
                     <input type="checkbox" id="bulk-toggle" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
                 </div>
 
-                <!-- NEW: Bulk Inputs Container -->
+                <!-- Bulk Inputs Container -->
                 <div id="bulk-inputs-container" class="hidden space-y-3 pt-2 border-t border-slate-100">
                     <p class="text-xs text-slate-500 font-semibold">বাল্ক সেটিংস (যেমন: বস্তা, খাচি)</p>
                     
                     <div class="grid grid-cols-2 gap-3">
-                        <!-- খুচরা ইউনিটের ড্রপডাউন -->
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 mb-1">খুচরা একক (Unit)</label>
                             <select id="prod-unit-name" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
@@ -487,7 +699,6 @@
                             </select>
                         </div>
 
-                        <!-- পাইকারি ইউনিটের ড্রপডাউন -->
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 mb-1">পাইকারি একক (Bulk)</label>
                             <select id="prod-bulk-name" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
@@ -508,18 +719,17 @@
                     </div>
                 </div>
 
-                <!-- NEW: Mid System Toggle -->
+                <!-- Mid System Toggle -->
                 <div class="flex items-center justify-between bg-purple-50 p-3 rounded-lg border border-purple-100 mt-2">
                     <span class="text-sm font-bold text-purple-800">মাঝারি (হালি/ডজন) সিস্টেম?</span>
                     <input type="checkbox" id="mid-toggle" class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500">
                 </div>
 
-                <!-- NEW: Mid Inputs Container -->
+                <!-- Mid Inputs Container -->
                 <div id="mid-inputs-container" class="hidden space-y-3 pt-2 border-t border-slate-100">
                     <p class="text-xs text-slate-500 font-semibold">মাঝারি সেটিংস (যেমন: হালি, ডজন)</p>
                     
                     <div class="grid grid-cols-2 gap-3">
-                        <!-- মাঝারি ইউনিটের ড্রপডাউন -->
                         <div class="col-span-2 sm:col-span-1">
                             <label class="block text-[10px] font-bold text-slate-500 mb-1">মাঝারি একক (Mid)</label>
                             <select id="prod-mid-name" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-purple-500 outline-none">
@@ -555,11 +765,11 @@
                 </div>
             </div>
             
-            <div id="memo-print-area" class="flex-1 overflow-y-auto p-4 bg-white text-black font-sans text-sm">
+            <div id="memo-print-area" class="flex-1 overflow-y-auto p-4 bg-white text-black font-sans text-sm leading-relaxed">
                 <div class="text-center mb-4 border-b-2 border-dashed border-slate-800 pb-4">
                     <h1 id="memo-shop-name" class="text-lg font-bold uppercase tracking-wide leading-tight mb-1">দোকানের নাম</h1>
                     <p id="memo-prop" class="text-xs">প্রোপাইটর: নাম</p>
-                    <p id="memo-mobile" class="text-xs">মোবাইল: ০১৭১১১১১১১</p>
+                    <p id="memo-mobile" class="text-xs">মোবাইল: ০োকানের মোবাইল</p>
                     <p class="text-[10px] mt-2 font-bold" id="memo-date">Date: </p>
                     <p class="text-[10px]">Invoice #: <span id="memo-invoice">0000</span></p>
                 </div>
@@ -581,7 +791,7 @@
     </div>
 
     <!-- PRINT CONTAINER FOR REPORTS -->
-    <div id="report-print-container" class="hidden bg-white text-black p-4 font-sans max-w-[210mm] mx-auto">
+    <div id="report-print-container" class="hidden bg-white text-black p-4 font-sans max-w-[210mm] mx-auto leading-relaxed">
         <div class="text-center border-b-2 border-black pb-4 mb-6">
             <h1 id="print-rpt-shop-name" class="text-2xl font-bold uppercase tracking-wide mb-1"></h1>
             <p id="print-rpt-prop" class="text-sm font-semibold mb-1"></p>
@@ -627,20 +837,37 @@
         // INIT & LOAD
         // ==========================================
         async function init() {
-            // Initial load from Supabase
-            await fetchData();
+            // FIX: "Login Screen to always appear first"
+            // We force the login screen to be visible immediately.
+            // We also clear the local storage to ensure a fresh login state on refresh, 
+            // as per the requirement "whenever the page is opened or refreshed".
+            // localStorage.removeItem('storeUser'); // Optional: strict reset
+            showLoginScreen();
+
+            // Fetch data in background so it's ready when they log in
+            fetchData();
             
-            // Setup Event Listeners
+            // ==========================================
+            // REAL-TIME SYNC IMPLEMENTATION
+            // ==========================================
+            // Listen to changes in products and sales_history tables
+            _supabase.channel('public-db-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+                    console.log('Products changed:', payload);
+                    fetchData();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_history' }, (payload) => {
+                    console.log('Sales History changed:', payload);
+                    fetchData();
+                })
+                .subscribe();
+
             document.getElementById('product-search').addEventListener('input', (e) => renderProducts(e.target.value));
-            
-            // Bulk Toggle Listener
             document.getElementById('bulk-toggle').addEventListener('change', (e) => {
                 const div = document.getElementById('bulk-inputs-container');
                 if(e.target.checked) div.classList.remove('hidden');
                 else div.classList.add('hidden');
             });
-
-            // Mid Toggle Listener
             document.getElementById('mid-toggle').addEventListener('change', (e) => {
                 const div = document.getElementById('mid-inputs-container');
                 if(e.target.checked) div.classList.remove('hidden');
@@ -648,6 +875,202 @@
             });
         }
 
+        // ==========================================
+        // LOGIN / SESSION LOGIC
+        // ==========================================
+        let currentLoginView = 'worker';
+
+        function showLoginScreen() {
+            const loginScreen = document.getElementById('login-screen');
+            loginScreen.classList.remove('hidden');
+            // Default to Worker tab on show
+            toggleLoginView('worker');
+        }
+
+        function toggleLoginView(view) {
+            currentLoginView = view;
+            const workerPanel = document.getElementById('worker-login-panel');
+            const adminPanel = document.getElementById('admin-login-panel');
+            const btnWorker = document.getElementById('btn-login-worker');
+            const btnAdmin = document.getElementById('btn-login-admin');
+
+            if (view === 'worker') {
+                workerPanel.classList.remove('hidden');
+                adminPanel.classList.add('hidden');
+                
+                // Update Worker Button Style (Emerald)
+                btnWorker.classList.add('worker-active');
+                btnWorker.classList.remove('admin-active');
+                
+                // Update Admin Button Style (Inactive)
+                btnAdmin.classList.remove('admin-active');
+                btnAdmin.classList.remove('worker-active');
+
+            } else {
+                adminPanel.classList.remove('hidden');
+                workerPanel.classList.add('hidden');
+                
+                // Update Admin Button Style (Slate/Dark)
+                btnAdmin.classList.add('admin-active');
+                btnAdmin.classList.remove('worker-active');
+                
+                // Update Worker Button Style (Inactive)
+                btnWorker.classList.remove('worker-active');
+                btnWorker.classList.remove('admin-active');
+            }
+        }
+
+        async function performLogin(role) {
+            // Ensure data is loaded if not already
+            if (state.products.length === 0) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.remove('hidden');
+                await fetchData();
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+            }
+
+            let success = false;
+            let pin = "";
+
+            if (role === 'admin') {
+                pin = document.getElementById('admin-login-pin').value;
+                if (pin === state.settings.pin) {
+                    state.currentUser = { role: 'admin', name: 'Administrator' };
+                    success = true;
+                } else {
+                    showToast("ভুল অ্যাডমিন পাসওয়ার্ড!", "error");
+                    document.getElementById('admin-login-pin').value = '';
+                    return;
+                }
+            } else {
+                pin = document.getElementById('worker-login-pin').value;
+                if (pin === state.settings.worker_pin) {
+                    state.currentUser = { role: 'worker', name: 'Worker' };
+                    success = true;
+                } else {
+                    showToast("ভুল ওয়ার্কার পাসওয়ার্ড!", "error");
+                    document.getElementById('worker-login-pin').value = '';
+                    return;
+                }
+            }
+
+            if (success) {
+                localStorage.setItem('storeUser', JSON.stringify(state.currentUser));
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                setupUIForRole();
+                showToast(`স্বাগতম, ${state.currentUser.role === 'admin' ? 'অ্যাডমিন' : 'ওয়ার্কার'}`, "success");
+            }
+        }
+
+        function logout() {
+            if(confirm("আপনি কি লগআউট করতে চান?")) {
+                state.currentUser = null;
+                state.cart = [];
+                localStorage.removeItem('storeUser');
+                location.reload();
+            }
+        }
+
+        function setupUIForRole() {
+            const role = state.currentUser?.role;
+            const settingsBtn = document.getElementById('header-settings-btn');
+            const workerView = document.getElementById('worker-view');
+            const adminView = document.getElementById('admin-view');
+            
+            const navReports = document.getElementById('nav-reports');
+            const navSettings = document.getElementById('nav-settings');
+            const navUsers = document.getElementById('nav-users');
+
+            document.getElementById('app').classList.remove('hidden');
+
+            workerView.classList.remove('hidden');
+            adminView.classList.add('hidden');
+
+            // Render products and cart now that app is visible
+            renderProducts();
+            renderCart();
+            updateSettingsUI();
+
+            if (role === 'admin') {
+                settingsBtn.classList.remove('hidden');
+                navReports.classList.remove('hidden');
+                navSettings.classList.remove('hidden');
+                navUsers.classList.remove('hidden');
+
+            } else if (role === 'worker') {
+                settingsBtn.classList.add('hidden');
+                navReports.classList.add('hidden');
+                navSettings.classList.add('hidden');
+                navUsers.classList.add('hidden');
+                adminView.classList.add('hidden');
+            }
+        }
+        
+        // ==========================================
+        // MASTER CODE LOGIC (Enhanced UI Feedback)
+        // ==========================================
+        function openMasterCodeModal() {
+            const modal = document.getElementById('master-code-modal');
+            const content = document.getElementById('master-code-content');
+            const input = document.getElementById('master-code-input');
+            const resultDiv = document.getElementById('master-code-result');
+
+            modal.classList.remove('hidden');
+            // Animation trigger
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+            setTimeout(() => content.classList.remove('scale-95'), 10);
+            
+            input.value = '';
+            resultDiv.classList.add('hidden');
+            resultDiv.className = "mb-6 text-sm hidden rounded-xl overflow-hidden shadow-sm border break-words leading-relaxed"; // Reset classes
+            
+            // Optional: Focus on input
+            setTimeout(() => input.focus(), 100);
+        }
+
+        function closeMasterCodeModal() {
+            const modal = document.getElementById('master-code-modal');
+            const content = document.getElementById('master-code-content');
+            
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function checkMasterCode() {
+            const inputCode = document.getElementById('master-code-input').value;
+            const resultDiv = document.getElementById('master-code-result');
+            resultDiv.classList.remove('hidden');
+
+            // Security: Check against CONFIG, not hardcoded in HTML
+            if (inputCode === CONFIG.MASTER_RESET_CODE) {
+                // Show Success (Beautiful Green Box)
+                resultDiv.className = "mb-6 p-6 rounded-xl border border-green-200 bg-green-50 text-green-800 text-center animate-fade-in shadow-sm leading-relaxed";
+                resultDiv.innerHTML = `
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                            <i class="fa-solid fa-check text-2xl text-green-600"></i>
+                        </div>
+                        <p class="font-bold text-lg">সফল! আপনার পাসওয়ার্ড:</p>
+                        <div class="mt-3 px-4 py-2 bg-white border border-green-200 rounded-lg shadow-sm">
+                            <span class="text-3xl font-bold tracking-widest text-green-900 select-all">${state.settings.pin}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Show Error (Red Box)
+                resultDiv.className = "mb-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-800 text-center animate-fade-in shadow-sm leading-relaxed";
+                resultDiv.innerHTML = `
+                    <div class="flex items-center justify-center gap-2 font-bold text-red-700 mb-1">
+                        <i class="fa-solid fa-circle-xmark text-xl"></i> ভুল মাস্টার কোড!
+                    </div>
+                    <p class="text-sm opacity-90 text-red-600">দয়া করে সঠিক কোড দিয়ে আবার চেষ্টা করুন।</p>
+                `;
+            }
+        }
+        
         // ==========================================
         // REPORT LOGIC
         // ==========================================
@@ -717,9 +1140,9 @@
                 let query = _supabase.from('sales_history');
                 
                 if (dateInput) {
-                    query = query.filter('date', 'cs', `^${dateInput}`); // Starts with date
+                    query = query.filter('date', 'cs', `^${dateInput}`);
                 } else if (monthInput) {
-                    query = query.filter('date', 'cs', `^${monthInput}`); // Starts with month
+                    query = query.filter('date', 'cs', `^${monthInput}`);
                 }
 
                 const { error } = await query.delete();
@@ -728,7 +1151,6 @@
                     showToast("ডিলিট করতে সমস্যা হয়েছে", "error");
                     console.error(error);
                 } else {
-                    // Refresh local state
                     await fetchData();
                     document.getElementById('report-date').value = "";
                     document.getElementById('report-month').value = "";
@@ -804,21 +1226,18 @@
             let text = "";
             let remainder = product.stock;
 
-            // 1. Calculate Bulk
             if (product.isBulk && product.bulkQty > 0) {
                 const count = Math.floor(remainder / product.bulkQty);
                 if (count > 0) text += `${count} ${product.bulkName} `;
                 remainder = remainder % product.bulkQty;
             }
 
-            // 2. Calculate Mid
             if (product.isMid && product.midQty > 0) {
                 const count = Math.floor(remainder / product.midQty);
                 if (count > 0) text += `${count} ${product.midName} `;
                 remainder = remainder % product.midQty;
             }
 
-            // 3. Calculate Unit
             if (remainder > 0 || text === "") {
                 text += `${remainder} ${product.unitName || 'Unit'}`;
             }
@@ -831,15 +1250,20 @@
         // ==========================================
         
         function goHome() {
-            if(state.view === 'admin') state.isAdminUnlocked = false;
-            switchView('worker');
+            if(state.currentUser?.role === 'worker') return; 
+            if(state.view === 'admin') switchView('worker');
         }
 
         function switchView(viewName) {
             state.view = viewName;
             const workerView = document.getElementById('worker-view');
             const adminView = document.getElementById('admin-view');
+            
             if (viewName === 'admin') {
+                if (state.currentUser?.role !== 'admin') {
+                    showToast("প্রবেশাধিকার নেই!", "error");
+                    return;
+                }
                 workerView.classList.add('hidden');
                 adminView.classList.remove('hidden');
                 renderInventory();
@@ -862,16 +1286,13 @@
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-lg shadow-sm border ${isOutOfStock ? 'border-red-200 bg-red-50' : 'border-slate-200'} p-2 flex flex-col justify-between hover:shadow-md transition-shadow h-full`;
                 
-                // Button Logic (3-Tier Support)
                 let buttonsHtml = '';
                 const unitLabel = p.unitName || 'Unit';
                 
-                // Determine Grid Classes based on button count
                 let gridClass = "grid-cols-2";
                 let textSize = "text-[10px] md:text-xs";
 
                 if (p.isMid && p.isBulk) {
-                    // 3 Buttons: Unit, Mid, Bulk
                     gridClass = "grid-cols-3 gap-1";
                     textSize = "text-[9px] md:text-[10px]";
                     buttonsHtml = `
@@ -888,7 +1309,6 @@
                         </div>
                     `;
                 } else if (p.isMid) {
-                    // 2 Buttons: Unit, Mid
                     buttonsHtml = `
                         <div class="grid grid-cols-2 gap-2 mt-2">
                             <button onclick="addToCart(${p.id}, 'unit')" ${isOutOfStock ? 'disabled' : ''} class="py-1.5 rounded-lg font-medium text-[10px] md:text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed bg-red-50' : 'border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white active:scale-95 bg-white'}">
@@ -900,7 +1320,6 @@
                         </div>
                     `;
                 } else if (p.isBulk) {
-                    // 2 Buttons: Unit, Bulk
                     buttonsHtml = `
                         <div class="grid grid-cols-2 gap-2 mt-2">
                             <button onclick="addToCart(${p.id}, 'unit')" ${isOutOfStock ? 'disabled' : ''} class="py-1.5 rounded-lg font-medium text-[10px] md:text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed bg-red-50' : 'border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white active:scale-95 bg-white'}">
@@ -912,7 +1331,6 @@
                         </div>
                     `;
                 } else {
-                    // Normal Item
                     buttonsHtml = `
                         <button onclick="addToCart(${p.id}, 'unit')" ${isOutOfStock ? 'disabled' : ''} class="mt-2 w-full py-1.5 rounded-lg font-medium text-xs transition-all border ${isOutOfStock ? 'border-red-200 text-red-400 cursor-not-allowed' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white active:scale-95'}">
                             ${isOutOfStock ? 'স্টক নেই' : 'কার্টে যোগ'}
@@ -934,7 +1352,6 @@
             });
         }
 
-        // Updated addToCart with mode (supports Unit, Mid, Bulk)
         function addToCart(id, mode = 'unit') {
             const product = state.products.find(p => p.id === id);
             if (!product) return;
@@ -961,7 +1378,6 @@
                 unitLabel = product.bulkName;
             }
 
-            // Check stock
             const existingItem = state.cart.find(c => c.id === id && c.mode === mode);
             const currentQtyInCart = existingItem ? existingItem.qty : 0;
             const totalStockNeeded = (currentQtyInCart + 1) * stockDeduction;
@@ -1079,7 +1495,7 @@
 
             if (isNaN(val) || val <= 0) {
                 if (val === 0) {
-                    if (confirm("পরিমাণ ০ করা হয়েছে। আইটেমটি তালিকা থেকে সরাতে চান?")) {
+                    if (confirm("পরিমাণ ০ির করা হয়েছে। আইটেমটি তালিকা থেকে সরাতে চান?")) {
                         state.cart = state.cart.filter(c => !(c.id === id && c.mode === mode));
                     } else {
                         renderCart();
@@ -1114,28 +1530,25 @@
 
         function clearCart(e) { if(e) e.stopPropagation(); if(confirm("সমস্ত তালিকা মুছে ফেলতে চান?")) { state.cart = []; renderCart(); } }
 
+        // ==========================================
+        // ATOMIC STOCK DECREMENT & CHECKOUT
+        // ==========================================
         async function handleCheckout() {
             if (state.cart.length === 0) return;
             
             let totalSell = 0, totalCost = 0;
             const memoItems = [], historyItems = [];
-            const stockUpdates = [];
 
+            // Calculate totals locally for the Sales History record
             [...state.cart].forEach(item => {
                 const product = state.products.find(p => p.id === item.id);
                 const itemSell = item.price * item.qty; 
                 totalSell += itemSell;
 
-                // Profit calculation works for all tiers because it relies on stockDeduction
                 const unitsDeducted = item.qty * item.stockDeduction;
                 const itemCost = product.buyPrice * unitsDeducted;
                 totalCost += itemCost;
                 
-                stockUpdates.push({ 
-                    id: product.id, 
-                    newStock: product.stock - unitsDeducted
-                });
-
                 historyItems.push({ 
                     name: product.name, 
                     qty: item.qty, 
@@ -1155,6 +1568,25 @@
             const profit = totalSell - totalCost;
 
             try {
+                // 1. ATOMIC STOCK DECREMENT
+                // Loop through cart items and call the decrement_stock RPC function.
+                // We map the cart items to an array of RPC promises.
+                const stockUpdatePromises = state.cart.map(item => {
+                    const unitsDeducted = item.qty * item.stockDeduction;
+                    return _supabase.rpc('decrement_stock', { 
+                        product_id: item.id, 
+                        quantity: unitsDeducted 
+                    });
+                });
+
+                // 2. CONCURRENCY SAFETY
+                // Wait for all stock updates to finish successfully before proceeding.
+                // If any product fails (e.g., race condition / insufficient stock in DB),
+                // Promise.all will throw an error, and we won't record the sale.
+                await Promise.all(stockUpdatePromises);
+
+                // 3. RECORD THE SALE
+                // Only record sales history after we are certain stock was decremented.
                 const { error: salesError } = await _supabase
                     .from('sales_history')
                     .insert([{
@@ -1167,17 +1599,12 @@
 
                 if (salesError) throw salesError;
 
-                for (const update of stockUpdates) {
-                    const { error: stockError } = await _supabase
-                        .from('products')
-                        .update({ stock: update.newStock })
-                        .eq('id', update.id);
-                    if (stockError) throw stockError;
-                }
-
-                state.products.forEach(p => {
-                    const update = stockUpdates.find(u => u.id === p.id);
-                    if(update) p.stock = update.newStock;
+                // 4. UPDATE LOCAL STATE
+                // Update local state immediately for UI responsiveness.
+                // (Realtime will also sync this eventually, but this makes it instant for the current user).
+                state.cart.forEach(item => {
+                    const p = state.products.find(prod => prod.id === item.id);
+                    if(p) p.stock -= (item.qty * item.stockDeduction);
                 });
 
                 state.salesHistory.unshift({ 
@@ -1187,6 +1614,7 @@
                     totalSell, totalCost, profit
                 });
 
+                // 5. CLEAR CART & SHOW MEMO
                 showMemo(memoItems, totalSell);
                 state.cart = []; 
                 renderCart(); 
@@ -1195,7 +1623,7 @@
 
             } catch (err) {
                 console.error("Checkout Error:", err);
-                showToast("বিক্রয় সম্পন্ন করতে সমস্যা হয়েছে!", "error");
+                showToast("বিক্রয় সম্পন্ন করতে সমস্যা হয়েছে! (সম্ভবত স্টক শেষ)", "error");
             }
         }
 
@@ -1214,48 +1642,66 @@
         }
 
         function toggleAdminAuth() {
-            if (state.isAdminUnlocked) switchView('admin');
-            else { document.getElementById('auth-modal').classList.remove('hidden'); document.getElementById('auth-pin').focus(); }
-        }
-
-        function verifyAdmin() {
-            if (document.getElementById('auth-pin').value === state.settings.pin) {
-                state.isAdminUnlocked = true; closeModal('auth-modal'); switchView('admin'); showToast("স্বাগতম, অ্যাডমিন", "success"); document.getElementById('auth-pin').value = '';
-            } else showToast("ভুল পাসওয়ার্ড!", "error");
-        }
-
-        function exitAdminMode() { state.isAdminUnlocked = false; switchView('worker'); showToast("লগআউট সফল", "info"); }
-        function toggleForgotPassword(show) { if(show) { document.getElementById('login-view').classList.add('hidden'); document.getElementById('reset-view').classList.remove('hidden'); } else { document.getElementById('login-view').classList.remove('hidden'); document.getElementById('reset-view').classList.add('hidden'); } }
-        
-        async function resetPassword() {
-            const code = document.getElementById('reset-code').value;
-            if(code === CONFIG.MASTER_RESET_CODE) {
-                state.settings.pin = CONFIG.DEFAULT_PIN;
-                const { error } = await _supabase.from('settings').update({ pin: CONFIG.DEFAULT_PIN }).eq('id', state.settings.id);
-                if(error) { showToast("রিসেট ব্যর্থ হয়েছে", "error"); return; }
-                showToast("পাসওয়ার্ড ডিফল্ট (1234) সেট হয়েছে", "success");
-                toggleForgotPassword(false);
-                closeModal('auth-modal');
-            } else {
-                showToast("ভুল মাস্টার কোড!", "error");
+            if (state.currentUser?.role !== 'admin') {
+                showToast("অ্যাডমিন প্রয়োজন", "error");
+                return;
             }
+            switchView('admin');
         }
 
-        async function changePassword(e) {
+        function exitAdminMode() { 
+            switchView('worker'); 
+        }
+        
+        // ==========================================
+        // USER MANAGEMENT LOGIC (PIN UPDATES)
+        // ==========================================
+        
+        async function updateAdminPin(e) {
             e.preventDefault();
-            const current = document.getElementById('current-pin').value; 
-            const newPin = document.getElementById('new-pin').value;
-            if(current !== state.settings.pin) return showToast("বর্তমান পাসওয়ার্ড ভুল!", "error");
+            const currentPin = document.getElementById('admin-current-pin').value;
+            const newPin = document.getElementById('admin-new-pin').value;
+            
+            if(currentPin !== state.settings.pin) return showToast("বর্তমান পাসওয়ার্ড ভুল!", "error");
             if(newPin.length < 4) return showToast("পাসওয়ার্ড কমপক্ষে ৪ ডিজিট হতে হবে", "error");
             
             state.settings.pin = newPin;
-            const { error } = await _supabase.from('settings').update({ pin: newPin }).eq('id', state.settings.id);
+            
+            const { data, error } = await _supabase
+                .from('settings')
+                .update({ pin: newPin })
+                .eq('id', state.settings.id)
+                .select();
             
             if(error) {
-                showToast("পাসওয়ার্ড পরিবর্তনে সমস্যা হয়েছে", "error");
+                console.error(error);
+                showToast("অ্যাডমিন পাসওয়ার্ড পরিবর্তনে সমস্যা হয়েছে", "error");
             } else {
-                showToast("পাসওয়ার্ড পরিবর্তন সফল", "success");
+                showToast("সফলভাবে পরিবর্তন হয়েছে!", "success");
                 e.target.reset();
+            }
+        }
+
+        async function updateWorkerPin(e) {
+            e.preventDefault();
+            const newPin = document.getElementById('worker-new-pin').value;
+            
+            if(newPin.length < 4) return showToast("পাসওয়ার্ড কমপক্ষে ৪ ডিজিট হতে হবে", "error");
+            
+            state.settings.worker_pin = newPin;
+
+            const { data, error } = await _supabase
+                .from('settings')
+                .update({ worker_pin: newPin })
+                .eq('id', state.settings.id)
+                .select();
+            
+            if(error) {
+                console.error(error);
+                showToast("ওয়ার্কার পাসওয়ার্ড পরিবর্তনে সমস্যা হয়েছে", "error");
+            } else {
+                showToast("সফলভাবে পরিবর্তন হয়েছে!", "success");
+                document.getElementById('worker-new-pin').value = newPin;
             }
         }
 
@@ -1271,7 +1717,6 @@
             const tbody = document.getElementById('inventory-table-body'); 
             tbody.innerHTML = "";
             state.products.forEach(p => {
-                // Stock display now uses the 3-tier logic automatically
                 const stockText = getStockDisplay(p);
                 const tr = document.createElement('tr'); tr.className = "border-b hover:bg-slate-50";
                 tr.innerHTML = `<td class="px-4 py-3 font-medium whitespace-nowrap">${p.name}</td><td class="px-4 py-3">৳ ${p.buyPrice}</td><td class="px-4 py-3 text-emerald-600 font-bold">৳ ${p.sellPrice}</td><td class="px-4 py-3">${stockText}</td><td class="px-4 py-3 text-sm text-slate-500">${p.location}</td><td class="px-4 py-3 text-right"><button onclick="editProduct(${p.id})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button></td>`;
@@ -1284,7 +1729,6 @@
             const form = document.getElementById('product-form'); 
             form.reset();
             
-            // Reset Toggles
             document.getElementById('bulk-inputs-container').classList.add('hidden');
             document.getElementById('bulk-toggle').checked = false;
             document.getElementById('mid-inputs-container').classList.add('hidden');
@@ -1300,7 +1744,6 @@
                 document.getElementById('prod-loc').value = p.location; 
                 document.getElementById('modal-title').innerText = "পণ্য এডিট করুন";
 
-                // Bulk Data
                 if (p.isBulk) {
                     document.getElementById('bulk-toggle').checked = true;
                     document.getElementById('bulk-inputs-container').classList.remove('hidden');
@@ -1310,7 +1753,6 @@
                     document.getElementById('prod-bulk-sell').value = p.bulkSellPrice || '';
                 }
 
-                // Mid Data
                 if (p.isMid) {
                     document.getElementById('mid-toggle').checked = true;
                     document.getElementById('mid-inputs-container').classList.remove('hidden');
@@ -1350,14 +1792,12 @@
             const stock = parseInt(document.getElementById('prod-stock').value); 
             const loc = document.getElementById('prod-loc').value;
             
-            // Bulk Fields
             const isBulk = document.getElementById('bulk-toggle').checked;
             const unitName = document.getElementById('prod-unit-name').value;
             const bulkName = document.getElementById('prod-bulk-name').value;
             const bulkQty = parseFloat(document.getElementById('prod-bulk-qty').value) || 0;
             const bulkSellPrice = parseFloat(document.getElementById('prod-bulk-sell').value) || 0;
 
-            // NEW: Mid Fields
             const isMid = document.getElementById('mid-toggle').checked;
             const midName = document.getElementById('prod-mid-name').value;
             const midQty = parseFloat(document.getElementById('prod-mid-qty').value) || 0;
@@ -1366,7 +1806,7 @@
             const payload = { 
                 name, buyPrice: buy, sellPrice: sell, stock, location: loc,
                 isBulk, unitName, bulkName, bulkQty, bulkSellPrice,
-                isMid, midName, midQty, midSellPrice // Include Mid fields
+                isMid, midName, midQty, midSellPrice 
             };
             
             try {
@@ -1412,7 +1852,7 @@
                 showToast("সেটিংস সেভ করতে সমস্যা হয়েছে", "error");
             } else {
                 updateSettingsUI(); 
-                showToast("সেটিংস সেভ হয়েছে", "success");
+                showToast("সফলভাবে পরিবর্তন হয়েছে!", "success");
             }
         }
 
@@ -1420,6 +1860,13 @@
             document.getElementById('setting-shop-name').value = state.settings.shopName;
             document.getElementById('setting-proprietor').value = state.settings.proprietor;
             document.getElementById('setting-mobile').value = state.settings.mobile;
+
+            // FIX: Populate Worker PIN field automatically with current DB value
+            const workerPinInput = document.getElementById('worker-new-pin');
+            if (workerPinInput) {
+                workerPinInput.value = state.settings.worker_pin || '';
+            }
+            
             document.getElementById('shop-name-header').innerText = state.settings.shopName;
             document.getElementById('shop-prop-header').innerText = `প্রোপাইটর: ${state.settings.proprietor}`;
         }
@@ -1441,7 +1888,7 @@
             container.innerHTML = ''; 
             const div = document.createElement('div');
             const color = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-red-500' : 'bg-slate-800');
-            div.className = `${color} text-white px-4 py-2 rounded-full shadow-lg text-xs md:text-sm font-medium fade-in text-center`;
+            div.className = `${color} text-white px-4 py-2 rounded-full shadow-lg text-xs md:text-sm font-medium fade-in text-center leading-relaxed`;
             div.innerText = msg; 
             container.appendChild(div);
             setTimeout(() => div.remove(), 3000);
