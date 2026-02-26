@@ -848,17 +848,42 @@
             fetchData();
             
             // ==========================================
-            // REAL-TIME SYNC IMPLEMENTATION
+            // REAL-TIME SYNC IMPLEMENTATION (UPDATED)
             // ==========================================
             // Listen to changes in products and sales_history tables
+            
+            // 1. Product Sync (Existing Logic)
             _supabase.channel('public-db-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
                     console.log('Products changed:', payload);
                     fetchData();
                 })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_history' }, (payload) => {
+                
+                // 2. Sales History Sync (UPDATED LOGIC)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_history' }, async (payload) => {
                     console.log('Sales History changed:', payload);
-                    fetchData();
+                    
+                    // 1. Refresh local state from DB
+                    await fetchData();
+
+                    // 2. Detect currently active filter to preserve user preference
+                    const dateInput = document.getElementById('report-date');
+                    const monthInput = document.getElementById('report-month');
+                    
+                    let currentFilter = 'all';
+                    
+                    // Check which filter is currently applied by reading input values
+                    if (dateInput && dateInput.value) {
+                        currentFilter = 'date';
+                    } else if (monthInput && monthInput.value) {
+                        currentFilter = 'month';
+                    }
+
+                    // 3. Trigger Report Update immediately
+                    // We ensure the report tab exists before trying to update it (good practice)
+                    if (document.getElementById('tab-reports')) {
+                        generateReport(currentFilter);
+                    }
                 })
                 .subscribe();
 
