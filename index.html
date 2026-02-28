@@ -35,57 +35,67 @@
         input[type=number] { -moz-appearance: textfield; }
 
         /* ==========================================
-           IMPROVED PRINT STYLES (THERMAL PRINTER READY)
-           ========================================== */
-        @media print {
-            @page {
-                size: 80mm auto; /* Standard Thermal Printer Width */
-                margin: 0;
-            }
-            body { 
-                background: white; 
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact; 
-            }
-            
-            /* Hide UI Elements */
-            body > * { display: none !important; }
-            .no-print { display: none !important; }
+ /* ==========================================
+            IMPROVED PRINT STYLES (THERMAL PRINTER READY)
+            ========================================== */
+            @media print {
+                @page {
+                    size: auto; /* প্রিন্টারের ডিফল্ট সাইজ নিবে */
+                    margin: 5mm; /* সাইডে সামান্য জায়গা ছেড়ে দিবে যাতে লেখা না কাটে */
+                }
+                
+                body { 
+                    background: white !important; 
+                    -webkit-print-color-adjust: exact; 
+                    print-color-adjust: exact; 
+                    margin: 0;
+                    padding: 0;
+                }
+                
+                /* সব UI ইলিমেন্ট লুকানো */
+                body > * { display: none !important; }
+                .no-print { display: none !important; }
 
-            /* Show Memo Only */
-            body.printing-memo #memo-modal {
-                display: block !important;
-                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                background: white !important; z-index: 9999; overflow: visible;
-            }
-            body.printing-memo #memo-modal > div {
-                box-shadow: none !important; border: none !important; width: 100% !important;
-                max-width: 100% !important; height: auto !important; border-radius: 0 !important;
-                margin: 0 !important; display: block !important;
-            }
-            body.printing-memo #memo-modal > div > div:first-child { display: none !important; } /* Hide Modal Header */
-            body.printing-memo #memo-print-area {
-                display: block !important; position: relative; width: 100%;
-                color: black !important; background: white !important; border: none !important;
-                padding: 10px !important; overflow: visible !important; font-size: 12px;
-            }
+                /* মেমো প্রিন্ট এরিয়া */
+                body.printing-memo #memo-modal {
+                    display: block !important;
+                    position: static;
+                    width: 100%;
+                }
 
-            /* Show Report Only */
-            body.printing-report #report-print-container {
-                display: block !important; position: absolute; top: 0; left: 0; width: 100%;
-                background: white !important; color: black !important; z-index: 9999;
-                padding: 10px !important; margin: 0 !important; height: auto !important;
-                overflow: visible !important; border: none !important; box-shadow: none !important;
-                font-size: 12px;
-            }
+                body.printing-memo #memo-modal > div {
+                    box-shadow: none !important; 
+                    border: none !important; 
+                    width: 100% !important;
+                    max-width: 100% !important; 
+                    margin: 0 !important; 
+                    padding: 0 !important;
+                }
 
-            /* Force Text Colors */
-            body.printing-report #report-print-container *, 
-            body.printing-memo #memo-print-area * {
-                color: #000 !important; border-color: #000 !important;
-                text-shadow: none !important; box-shadow: none !important;
+                /* মেমোর মূল অংশ */
+                body.printing-memo #memo-print-area {
+                    display: block !important;
+                    width: 95% !important; /* ১০০% এর বদলে ৯৫% দিলে দুই পাশ থেকে লেখা কাটবে না */
+                    margin: 0 auto !important; /* মাঝখানে থাকবে */
+                    padding: 5px !important;
+                    font-size: 11px; /* লেখা একটু ছোট করা হলো যেন জায়গা পায় */
+                    box-sizing: border-box;
+                }
+
+                /* টেবিলের কলামগুলোর উইডথ কন্ট্রোল */
+                #memo-items td {
+                    word-break: break-word; /* নাম বড় হলে নিচে চলে আসবে, কেটে যাবে না */
+                }
+
+                /* রিপোর্ট প্রিন্ট এরিয়া */
+                body.printing-report #report-print-container {
+                    display: block !important; 
+                    width: 100% !important;
+                    padding: 10px !important;
+                    margin: 0 !important;
+                    font-size: 12px;
+                }
             }
-        }
 
         /* Smooth Transitions */
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
